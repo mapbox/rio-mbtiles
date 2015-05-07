@@ -9,6 +9,7 @@ before_install:
 install:
   - pip install --install-option="--no-cython-compile" cython
   - "pip install coveralls"
+  - "pip install git://git@github.com:mapbox/rasterio.git@mbtiles#egg=rasterio
   - "pip install -e .[test]"
 script: 
   - py.test
