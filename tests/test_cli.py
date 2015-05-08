@@ -48,7 +48,8 @@ def test_export_zoom(data):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(data.join('export.mbtiles'))
     runner = CliRunner()
-    result = runner.invoke(mbtiles, [inputfile, outputfile, '--zoom-levels', '6..7'])
+    result = runner.invoke(
+        mbtiles, [inputfile, outputfile, '--zoom-levels', '6..7'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
@@ -61,6 +62,7 @@ def test_export_dump(data):
     outputfile = str(data.join('export.mbtiles'))
     dumpdir = pytest.ensuretemp('dump')
     runner = CliRunner()
-    result = runner.invoke(mbtiles, [inputfile, outputfile, '--image-dump', str(dumpdir)])
+    result = runner.invoke(
+        mbtiles, [inputfile, outputfile, '--image-dump', str(dumpdir)])
     assert result.exit_code == 0
     assert len(os.listdir(str(dumpdir))) == 6

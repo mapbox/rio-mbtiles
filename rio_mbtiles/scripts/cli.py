@@ -42,11 +42,13 @@ from rio_mbtiles import buffer
               help="Tile image format.")
 @click.option('--zoom-levels',
               default=None,
+              metavar="MIN..MAX",
               help="A min...max range of export zoom levels. "
                    "The default zoom level "
                    "is the one at which the dataset is contained within "
                    "a single tile.")
 @click.option('--image-dump',
+              metavar="PATH",
               help="A directory into which image tiles will be optionally "
                    "dumped.")
 @click.pass_context
@@ -54,7 +56,16 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
             img_format, zoom_levels, image_dump):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
-    The dataset will be reprojected and converted to PNG.
+    The input dataset may have any coordinate reference system. It must
+    have at least three bands, which will be become the red, blue, and
+    green bands of the output image tiles.
+
+    If no zoom levels are specified, the defaults are the zoom levels
+    nearest to the one at which one tile may contain the entire source
+    dataset.
+
+    If a title or description for the output file are not provided,
+    they will be taken from the input dataset's filename.
     """
     verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1
     logger = logging.getLogger('rio')
