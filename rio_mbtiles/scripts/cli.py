@@ -153,9 +153,12 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
             for tile in tiles:
                 yield (tile, base_kwds, inputfile)
 
+        # Adaptive chunksize.
+        chunksize = max(1, int(round(len(tiles)/num_workers)))
+
         # Process tasks, writing out results as they are completed.
         for tile, contents in pool.imap_unordered(
-                process_tile, tiling(), int(round(len(tiles)/num_workers))):
+                process_tile, tiling(), chunksize):
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
