@@ -18,4 +18,3 @@ def test_process_tile(data):
     assert tile.x == 36
     assert tile.y == 73
     assert tile.z == 7
-    assert contents[0] == 137
