@@ -2,20 +2,18 @@
 
 import logging
 import math
+from multiprocessing import Pool
 import os
 import sqlite3
 import sys
 
 import click
 import mercantile
-import numpy as np
 import rasterio
 from rasterio.rio.cli import cli, output_opt, resolve_inout
-from rasterio.transform import from_bounds
-from rasterio.warp import reproject, transform
-from rasterio._io import virtual_file_to_buffer
+from rasterio.warp import transform
 
-from rio_mbtiles import buffer
+from rio_mbtiles import buffer, process_tile
 
 
 @cli.command(short_help="Export a dataset to MBTiles.")
@@ -51,9 +49,10 @@ from rio_mbtiles import buffer
               metavar="PATH",
               help="A directory into which image tiles will be optionally "
                    "dumped.")
+@click.option('-j', 'num_jobs', type=int, default=1, help="Process pool size.")
 @click.pass_context
 def mbtiles(ctx, files, output_opt, title, description, layer_type,
-            img_format, zoom_levels, image_dump):
+            img_format, zoom_levels, image_dump, num_jobs):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -71,6 +70,7 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
     logger = logging.getLogger('rio')
 
     output, files = resolve_inout(files=files, output=output_opt)
+    inputfile = files[0]
 
     # Initialize the sqlite db.
     if os.path.exists(output):
@@ -86,7 +86,7 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
 
     with rasterio.drivers(CPL_DEBUG=verbosity > 2):
 
-        with rasterio.open(files[0]) as src:
+        with rasterio.open(inputfile) as src:
 
             title = title or os.path.basename(src.name)
             description = description or src.name
@@ -138,50 +138,31 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
                 'count': 3,
                 'crs': 'EPSG:3857'}
 
-            # Iterate over zoom levels and identify the required tiles.
+        # Iterate over zoom levels and identify the required tiles.
+        def tiling():
             for tile in mercantile.tiles(
                     west, south, east, north, range(minzoom, maxzoom+1)):
-                logger.debug("Tile: %r", tile)
+                yield (tile, base_kwds, inputfile)
 
-                # Get the bounds of the tile.
-                ulx, uly = mercantile.xy(
-                    *mercantile.ul(tile.x, tile.y, tile.z))
-                lrx, lry = mercantile.xy(
-                    *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
+        pool = Pool(processes=num_jobs)
+        for tile, contents in pool.imap(process_tile, tiling()):
+            # MBTiles has a different origin than Mercantile/tilebelt.
+            tiley = int(math.pow(2, tile.z)) - tile.y - 1
 
-                kwds = base_kwds.copy()
-                kwds['transform'] = from_bounds(ulx, lry, lrx, uly, 256, 256)
-                logger.debug("Kwds: %r", kwds)
+            # Optional image dump.
+            if image_dump:
+                img_name = '%d-%d-%d.%s' % (
+                    tile.x, tiley, tile.z, img_ext)
+                img_path = os.path.join(image_dump, img_name)
+                with open(img_path, 'wb') as img:
+                    img.write(contents)
 
-                with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
-
-                    # Reproject the src dataset into image tile.
-                    for bidx in tmp.indexes:
-                        reproject(
-                            rasterio.band(src, bidx),
-                            rasterio.band(tmp, bidx))
-
-                # Get contents of the virtual file and repair it.
-                contents = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
-                contents = contents[-1:] + contents[:-1]
-
-                # MBTiles has a different origin than Mercantile/tilebelt.
-                tiley = int(math.pow(2, tile.z)) - tile.y - 1
-
-                # Optional image dump.
-                if image_dump:
-                    img_name = '%d-%d-%d.%s' % (
-                        tile.x, tiley, tile.z, img_ext)
-                    img_path = os.path.join(image_dump, img_name)
-                    with open(img_path, 'wb') as img:
-                        img.write(contents)
-
-                # Insert tile into db.
-                cur.execute(
-                    "INSERT INTO tiles "
-                    "(zoom_level, tile_column, tile_row, tile_data) "
-                    "VALUES (?, ?, ?, ?);",
-                    (tile.z, tile.x, tiley, buffer(contents)))
+            # Insert tile into db.
+            cur.execute(
+                "INSERT INTO tiles "
+                "(zoom_level, tile_column, tile_row, tile_data) "
+                "VALUES (?, ?, ?, ?);",
+                (tile.z, tile.x, tiley, buffer(contents)))
 
         conn.commit()
         conn.close()

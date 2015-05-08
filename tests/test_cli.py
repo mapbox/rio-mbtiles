@@ -24,7 +24,7 @@ def test_export_metadata(data):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(data.join('export.mbtiles'))
     runner = CliRunner()
-    result = runner.invoke(mbtiles, [inputfile, outputfile])
+    result = runner.invoke(mbtiles, [inputfile, outputfile], catch_exceptions=False)
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
@@ -50,6 +50,19 @@ def test_export_zoom(data):
     runner = CliRunner()
     result = runner.invoke(
         mbtiles, [inputfile, outputfile, '--zoom-levels', '6..7'])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    assert len(cur.fetchall()) == 6
+
+
+def test_export_jobs(data):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(data.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        mbtiles, [inputfile, outputfile, '-j', '4'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
