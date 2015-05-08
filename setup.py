@@ -8,14 +8,14 @@ with codecs_open('README.rst', encoding='utf-8') as f:
 
 
 setup(name='rio-mbtiles',
-      version='0.1.0',
-      description=u"A Rasterio plugin that exports MBTiles",
+      version='1.0.0',
+      description=u"A Rasterio plugin command that exports MBTiles",
       long_description=long_description,
       classifiers=[],
       keywords='',
       author=u"Sean Gillies",
       author_email='sean@mapbox.com',
-      url='https://github.com/mapbox/rio_mbtiles',
+      url='https://github.com/mapbox/rio-mbtiles',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
@@ -23,7 +23,7 @@ setup(name='rio-mbtiles',
       install_requires=[
           'click',
           'mercantile',
-          'rasterio'
+          'rasterio>=0.23'
       ],
       extras_require={
           'test': ['pytest'],
