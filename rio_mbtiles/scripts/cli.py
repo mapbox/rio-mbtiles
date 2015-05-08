@@ -13,7 +13,7 @@ import rasterio
 from rasterio.rio.cli import cli, output_opt, resolve_inout
 from rasterio.warp import transform
 
-from rio_mbtiles import buffer, process_tile
+from rio_mbtiles import buffer, init_worker, process_tile
 
 
 @cli.command(short_help="Export a dataset to MBTiles.")
@@ -142,23 +142,16 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
             ("bounds", "%f,%f,%f,%f" % (west, south, east, north)))
 
         # Create a pool of workers to process tile tasks.
-        pool = Pool(processes=num_workers)
+        pool = Pool(num_workers, init_worker, (inputfile, base_kwds), 100)
 
         tiles = list(mercantile.tiles(
             west, south, east, north, range(minzoom, maxzoom+1)))
 
-        # A task iterator. A task is a tile, base parameters for
-        # that tile's imagery, and the path to the source dataset.
-        def tiling():
-            for tile in tiles:
-                yield (tile, base_kwds, inputfile)
-
         # Adaptive chunksize.
         chunksize = max(1, int(round(len(tiles)/num_workers)))
 
-        # Process tasks, writing out results as they are completed.
         for tile, contents in pool.imap_unordered(
-                process_tile, tiling(), chunksize):
+                process_tile, tiles, chunksize):
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
