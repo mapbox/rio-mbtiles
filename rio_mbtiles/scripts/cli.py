@@ -49,10 +49,11 @@ from rio_mbtiles import buffer, process_tile
               metavar="PATH",
               help="A directory into which image tiles will be optionally "
                    "dumped.")
-@click.option('-j', 'num_jobs', type=int, default=1, help="Process pool size.")
+@click.option('-j', 'num_workers', type=int, default=1,
+              help="Number of worker processes (default: 1).")
 @click.pass_context
 def mbtiles(ctx, files, output_opt, title, description, layer_type,
-            img_format, zoom_levels, image_dump, num_jobs):
+            img_format, zoom_levels, image_dump, num_workers):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -66,86 +67,96 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
     If a title or description for the output file are not provided,
     they will be taken from the input dataset's filename.
     """
+
     verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1
     logger = logging.getLogger('rio')
 
     output, files = resolve_inout(files=files, output=output_opt)
     inputfile = files[0]
 
-    # Initialize the sqlite db.
-    if os.path.exists(output):
-        os.unlink(output)
-    conn = sqlite3.connect(output)
-    cur = conn.cursor()
-    cur.execute(
-        "CREATE TABLE tiles "
-        "(zoom_level integer, tile_column integer, "
-        "tile_row integer, tile_data blob);")
-    cur.execute(
-        "CREATE TABLE metadata (name text, value text);")
-
     with rasterio.drivers(CPL_DEBUG=verbosity > 2):
 
+        # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
 
+            # Name and description.
             title = title or os.path.basename(src.name)
             description = description or src.name
-            img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
-
-            # Insert mbtiles metadata into db.
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("name", title))
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("type", layer_type))
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("version", "1.1"))
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("description", description))
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("format", img_ext))
 
             # Compute the geographic bounding box of the dataset.
             (west, east), (south, north) = transform(
                 src.crs, 'EPSG:4326', src.bounds[::2], src.bounds[1::2])
-            epsilon = 1.0e-10
-            west += epsilon
-            south += epsilon
-            east -= epsilon
-            north -= epsilon
 
-            # Resolve the minimum and maximum zoom levels for export.
-            if zoom_levels:
-                minzoom, maxzoom = map(int, zoom_levels.split('..'))
-            else:
-                zw = int(round(math.log(360.0/(east-west), 2.0)))
-                zh = int(round(math.log(170.1022/(north-south), 2.0)))
-                minzoom = min(zw, zh)
-                maxzoom = max(zw, zh)
-            logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
+        # Resolve the minimum and maximum zoom levels for export.
+        if zoom_levels:
+            minzoom, maxzoom = map(int, zoom_levels.split('..'))
+        else:
+            zw = int(round(math.log(360.0/(east-west), 2.0)))
+            zh = int(round(math.log(170.1022/(north-south), 2.0)))
+            minzoom = min(zw, zh)
+            maxzoom = max(zw, zh)
+        logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
-            # Parameters for creation of tile images.
-            base_kwds = {
-                'driver': img_format.upper(),
-                'dtype': 'uint8',
-                'nodata': 0,
-                'height': 256,
-                'width': 256,
-                'count': 3,
-                'crs': 'EPSG:3857'}
+        # Parameters for creation of tile images.
+        base_kwds = {
+            'driver': img_format.upper(),
+            'dtype': 'uint8',
+            'nodata': 0,
+            'height': 256,
+            'width': 256,
+            'count': 3,
+            'crs': 'EPSG:3857'}
 
-        # Iterate over zoom levels and identify the required tiles.
+        img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
+
+        # Initialize the sqlite db.
+        if os.path.exists(output):
+            os.unlink(output)
+        conn = sqlite3.connect(output)
+        cur = conn.cursor()
+        cur.execute(
+            "CREATE TABLE tiles "
+            "(zoom_level integer, tile_column integer, "
+            "tile_row integer, tile_data blob);")
+        cur.execute(
+            "CREATE TABLE metadata (name text, value text);")
+
+        # Insert mbtiles metadata into db.
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("name", title))
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("type", layer_type))
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("version", "1.1"))
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("description", description))
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("format", img_ext))
+        cur.execute(
+            "INSERT INTO metadata (name, value) VALUES (?, ?);",
+            ("bounds", "%f,%f,%f,%f" % (west, south, east, north)))
+
+        # Create a pool of workers to process tile tasks.
+        pool = Pool(processes=num_workers)
+
+        tiles = list(mercantile.tiles(
+            west, south, east, north, range(minzoom, maxzoom+1)))
+
+        # A task iterator. A task is a tile, base parameters for
+        # that tile's imagery, and the path to the source dataset.
         def tiling():
-            for tile in mercantile.tiles(
-                    west, south, east, north, range(minzoom, maxzoom+1)):
+            for tile in tiles:
                 yield (tile, base_kwds, inputfile)
 
-        pool = Pool(processes=num_jobs)
-        for tile, contents in pool.imap(process_tile, tiling()):
+        # Process tasks, writing out results as they are completed.
+        for tile, contents in pool.imap_unordered(
+                process_tile, tiling(), int(round(len(tiles)/num_workers))):
+
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
 
