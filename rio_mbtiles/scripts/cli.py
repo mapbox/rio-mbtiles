@@ -15,9 +15,8 @@ from rasterio.transform import from_bounds
 from rasterio.warp import reproject, transform
 from rasterio._io import virtual_file_to_buffer
 
+from rio_mbtiles import buffer
 
-if sys.version_info > (3,):
-    buffer = bytes
 
 @cli.command(short_help="Export a dataset to MBTiles.")
 @click.argument(
