@@ -40,3 +40,16 @@ parallel processing.
                               optionally dumped.
       -j INTEGER              Number of worker processes (default: 1).
       --help                  Show this message and exit.
+
+The rio-mbtiles command is suited for small to medium (~1 GB) raster sources.
+On a MacBook Air, the 1:10M scale Natural Earth raster 
+(a 21,600 x 10,800 pixel, 700 MB TIFF) exports to MBTiles in 45 seconds.
+
+.. code-block:: console
+
+    $ time GDAL_CACHEMAX=256 rio mbtiles NE1_HR_LC.tif \
+    > -o ne.mbtiles --zoom-levels 1..5 -j 4
+    
+    real    0m44.925s
+    user    1m20.152s
+    sys     0m22.428s

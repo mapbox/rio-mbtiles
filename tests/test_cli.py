@@ -24,7 +24,19 @@ def test_export_metadata(data):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(data.join('export.mbtiles'))
     runner = CliRunner()
-    result = runner.invoke(mbtiles, [inputfile, outputfile], catch_exceptions=False)
+    result = runner.invoke(mbtiles, [inputfile, outputfile])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from metadata where name == 'name'")
+    assert cur.fetchone()[1] == 'RGB.byte.tif'
+
+
+def test_export_metadata_output_opt(data):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(data.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(mbtiles, [inputfile, '-o', outputfile])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
