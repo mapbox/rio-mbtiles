@@ -5,7 +5,7 @@ rio-mbtiles
    :target: https://travis-ci.org/mapbox/rio-mbtiles
 
 A plugin for the
-[Rasterio CLI](https://github.com/mapbox/rasterio/blob/master/docs/cli.rst)
+`Rasterio CLI <https://github.com/mapbox/rasterio/blob/master/docs/cli.rst>`__
 that exports a raster dataset to the MBTiles (version 1.1) format. Features
 include automatic reprojection and parallel processing.
 
@@ -65,7 +65,8 @@ in 45 seconds.
 Installation
 ------------
 
-If you've already installed Rasterio, installation is just
-`pip install rio-mbtiles`.
+If you've already 
+`installed Rasterio <https://github.com/mapbox/rasterio#installation>`,
+installation is just ``pip install rio-mbtiles``.
  
-See also: https://github.com/mapbox/rasterio#installation.
+See also: 
