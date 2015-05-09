@@ -68,5 +68,3 @@ Installation
 If you've already 
 `installed Rasterio <https://github.com/mapbox/rasterio#installation>`,
 installation is just ``pip install rio-mbtiles``.
- 
-See also: 
