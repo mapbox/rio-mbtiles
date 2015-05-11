@@ -66,6 +66,8 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
 
     If a title or description for the output file are not provided,
     they will be taken from the input dataset's filename.
+
+    This command is suited for small to medium (~1 GB) sized sources.
     """
 
     verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1
@@ -141,17 +143,23 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
             "INSERT INTO metadata (name, value) VALUES (?, ?);",
             ("bounds", "%f,%f,%f,%f" % (west, south, east, north)))
 
+        conn.commit()
+
         # Create a pool of workers to process tile tasks.
         pool = Pool(num_workers, init_worker, (inputfile, base_kwds), 100)
 
-        tiles = list(mercantile.tiles(
-            west, south, east, north, range(minzoom, maxzoom+1)))
+        # Constrain bounds.
+        EPS = 1.0e-10
+        west = max(-180+EPS, west)
+        south = max(-85.051129, south)
+        east = min(180-EPS, east)
+        north = min(85.051129, north)
 
-        # Adaptive chunksize.
-        chunksize = max(1, int(round(len(tiles)/num_workers)))
+        # Initialize iterator over output tiles.
+        tiles = mercantile.tiles(
+            west, south, east, north, range(minzoom, maxzoom+1))
 
-        for tile, contents in pool.imap_unordered(
-                process_tile, tiles, chunksize):
+        for tile, contents in pool.imap_unordered(process_tile, tiles):
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
@@ -171,7 +179,8 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
                 "VALUES (?, ?, ?, ?);",
                 (tile.z, tile.x, tiley, buffer(contents)))
 
-        conn.commit()
+            conn.commit()
+
         conn.close()
         # Done!
 

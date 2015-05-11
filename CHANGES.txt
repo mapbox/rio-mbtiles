@@ -1,3 +1,8 @@
+1.0.1 (2015-05-09)
+------------------
+- Remove adaptive chunking and commit tiles as soon as possible to keep
+  program memory well bounded.
+
 1.0.0 (2015-05-08)
 ------------------
 - Initial release. Exports version 1.1 MBTiles with automatic reprojection
