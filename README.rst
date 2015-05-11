@@ -37,7 +37,7 @@ Usage
       --overlay               Export as an overlay (the default).
       --baselayer             Export as a base layer.
       --format [JPEG|PNG]     Tile image format.
-      --zoom-levels MIN..MAX  A min...max range of export zoom levels. The default
+      --zoom-levels MIN..MAX  A min..max range of export zoom levels. The default
                               zoom level is the one at which the dataset is
                               contained within a single tile.
       --image-dump PATH       A directory into which image tiles will be
