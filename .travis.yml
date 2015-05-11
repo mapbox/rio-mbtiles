@@ -3,17 +3,21 @@ python:
   - "2.7"
   - "3.4"
 before_install:
-  - sudo add-apt-repository -y ppa:ubuntugis/ppa
-  - sudo apt-get update -qq
-  - sudo apt-get install -y libgdal1h gdal-bin libgdal-dev
+  - "sudo add-apt-repository -y ppa:ubuntugis/ppa"
+  - "sudo apt-get update -qq"
+  - "sudo apt-get install -y libgdal1h gdal-bin libgdal-dev"
 install:
-  - pip install --install-option="--no-cython-compile" cython==0.21.2
+  - "pip install --install-option="--no-cython-compile" cython==0.21.2"
   - "pip install -r requirements-dev.txt"
   - "pip install coveralls"
-  - "pip install git+https://github.com/mapbox/rasterio.git#egg=rasterio"
   - "pip install -e .[test]"
 script: 
   - py.test
-  - coverage run --source=rio_mbtiles -m py.test
+  - "coverage run --source=rio_mbtiles -m py.test"
 after_success:
   - coveralls
+sudo: false
+cache:
+  directories:
+    - $HOME/virtualenv/python2.7.9/lib/python2.7/site-packages
+    - $HOME/virtualenv/python3.4.3/lib/python2.7/site-packages
