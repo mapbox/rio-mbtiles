@@ -8,7 +8,7 @@ with codecs_open('README.rst', encoding='utf-8') as f:
 
 
 setup(name='rio-mbtiles',
-      version='1.0.1',
+      version='1.1.0',
       description=u"A Rasterio plugin command that exports MBTiles",
       long_description=long_description,
       classifiers=[],
