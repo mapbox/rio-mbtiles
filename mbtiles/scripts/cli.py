@@ -2,7 +2,7 @@
 
 import logging
 import math
-from multiprocessing import Pool
+from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
 import sys
@@ -14,6 +14,10 @@ from rasterio.rio.cli import cli, output_opt, resolve_inout
 from rasterio.warp import transform
 
 from mbtiles import buffer, init_worker, process_tile
+from mbtiles import __version__ as mbtiles_version
+
+
+DEFAULT_NUM_WORKERS = cpu_count() - 1
 
 
 @cli.command(short_help="Export a dataset to MBTiles.")
@@ -49,8 +53,10 @@ from mbtiles import buffer, init_worker, process_tile
               metavar="PATH",
               help="A directory into which image tiles will be optionally "
                    "dumped.")
-@click.option('-j', 'num_workers', type=int, default=1,
-              help="Number of worker processes (default: 1).")
+@click.option('-j', 'num_workers', type=int, default=DEFAULT_NUM_WORKERS,
+              help="Number of worker processes (default: %d)." % (
+                  DEFAULT_NUM_WORKERS))
+@click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output_opt, title, description, layer_type,
             img_format, zoom_levels, image_dump, num_workers):
@@ -68,6 +74,8 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
     they will be taken from the input dataset's filename.
 
     This command is suited for small to medium (~1 GB) sized sources.
+
+    Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
     """
 
     verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1

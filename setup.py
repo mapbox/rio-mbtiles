@@ -2,13 +2,22 @@ from codecs import open as codecs_open
 from setuptools import setup, find_packages
 
 
+# Parse the version from the mbtiles module.
+with open('mbtiles/__init__.py') as f:
+    for line in f:
+        if line.find("__version__") >= 0:
+            version = line.split("=")[1].strip()
+            version = version.strip('"')
+            version = version.strip("'")
+            break
+
 # Get the long description from the relevant file
 with codecs_open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
 
 setup(name='rio-mbtiles',
-      version='1.1.0',
+      version=version,
       description=u"A Rasterio plugin command that exports MBTiles",
       long_description=long_description,
       classifiers=[],
@@ -30,6 +39,6 @@ setup(name='rio-mbtiles',
       },
       entry_points="""
       [rasterio.rio_commands]
-      mbtiles=rio_mbtiles.scripts.cli:cli
+      mbtiles=mbtiles.scripts.cli:cli
       """
       )

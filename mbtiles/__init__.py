@@ -9,6 +9,8 @@ from rasterio._io import virtual_file_to_buffer
 
 buffer = bytes if sys.version_info > (3,) else buffer
 
+__version__ = '1.1.1'
+
 base_kwds = None
 src = None
 
