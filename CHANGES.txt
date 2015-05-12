@@ -1,3 +1,7 @@
+1.1.0 (2015-05-11)
+------------------
+- Rename module from rio_mbtiles to mbtiles (#2). Command remains the same.
+
 1.0.1 (2015-05-09)
 ------------------
 - Remove adaptive chunking and commit tiles as soon as possible to keep

@@ -13,7 +13,7 @@ import rasterio
 from rasterio.rio.cli import cli, output_opt, resolve_inout
 from rasterio.warp import transform
 
-from rio_mbtiles import buffer, init_worker, process_tile
+from mbtiles import buffer, init_worker, process_tile
 
 
 @cli.command(short_help="Export a dataset to MBTiles.")

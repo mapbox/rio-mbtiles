@@ -7,7 +7,7 @@ from click.testing import CliRunner
 import pytest
 import rasterio
 
-from rio_mbtiles.scripts.cli import mbtiles
+from mbtiles.scripts.cli import mbtiles
 
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
