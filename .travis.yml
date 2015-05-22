@@ -7,8 +7,10 @@ before_install:
   - "sudo apt-get update -qq"
   - "sudo apt-get install -y libgdal1h gdal-bin libgdal-dev"
 install:
-  - "wget https://s3.amazonaws.com/mapbox/rasterio/rio-0.23.0.tar.gz -o /home/travis/virtualenv/rio-0.23.0.tar.gz"
-  - "cd /home/travis/virtualenv && tar xzf rio-0.23.0.tar.gz"
+  - "cd /home/travis/virtualenv"
+  - "wget https://s3.amazonaws.com/mapbox/rasterio/rio-0.23.0.tar.gz"
+  - "tar xzf rio-0.23.0.tar.gz"
+  - "cd $TRAVIS_BUILD_DIR"
   - "pip install -r requirements-dev.txt"
   - "pip install coveralls"
   - "pip install -e .[test]"
