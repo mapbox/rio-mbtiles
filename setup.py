@@ -38,7 +38,7 @@ setup(name='rio-mbtiles',
           'test': ['pytest'],
       },
       entry_points="""
-      [rasterio.rio_commands]
-      mbtiles=mbtiles.scripts.cli:cli
+      [rasterio.rio_plugins]
+      mbtiles=mbtiles.scripts.cli:mbtiles
       """
       )
