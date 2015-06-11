@@ -35,7 +35,7 @@ setup(name='rio-mbtiles',
           'rasterio>=0.23'
       ],
       extras_require={
-          'test': ['pytest'],
+          'test': ['pytest', 'pytest-cov'],
       },
       entry_points="""
       [rasterio.rio_commands]

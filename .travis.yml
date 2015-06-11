@@ -7,10 +7,9 @@ before_install:
   - "sudo apt-get install -y libgdal1h gdal-bin libgdal-dev"
 install:
   - "./.travis-install-platter.sh"
-  - "pip install -r requirements-dev.txt"
+  - "pip install coveralls"
   - "pip install -e .[test]"
-script: 
-  - "py.test"
-  - "coverage run --source=rio_mbtiles -m py.test"
+script:
+  - "py.test --cov rio_mbtiles --cov-report term-missing"
 after_success:
   - "coveralls"
