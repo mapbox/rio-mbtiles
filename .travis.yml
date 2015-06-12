@@ -2,20 +2,22 @@ language: python
 python:
   - "2.7"
   - "3.4"
+cache:
+  directories:
+    - $HOME/.pip-cache/
+    - /home/travis/virtualenv/python2.7
+    - /home/travis/virtualenv/python3.4
 before_install:
-  - "sudo add-apt-repository -y ppa:ubuntugis/ppa"
-  - "sudo apt-get update -qq"
-  - "sudo apt-get install -y libgdal1h gdal-bin libgdal-dev"
+  - sudo add-apt-repository -y ppa:ubuntugis/ppa
+  - sudo apt-get update -qq
+  - sudo apt-get install -y libgdal1h gdal-bin libgdal-dev
+  - wget https://s3.amazonaws.com/mapbox/rasterio/rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
+  - tar xzf rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
+  - ./.travis-install-platter.sh
 install:
-  - "cd /home/travis/virtualenv"
-  - "wget https://s3.amazonaws.com/mapbox/rasterio/rio-0.23.0.tar.gz"
-  - "tar xzf rio-0.23.0.tar.gz"
-  - "cd $TRAVIS_BUILD_DIR"
-  - "pip install -r requirements-dev.txt"
-  - "pip install coveralls"
-  - "pip install -e .[test]"
-script: 
-  - py.test
-  - "coverage run --source=rio_mbtiles -m py.test"
+  - pip install coveralls --cache-dir $HOME/.pip-cache
+  - pip install -e .[test] --cache-dir $HOME/.pip-cache
+script:
+  - py.test --cov mbtiles --cov-report term-missing
 after_success:
   - coveralls
