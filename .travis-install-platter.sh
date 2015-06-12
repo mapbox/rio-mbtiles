@@ -2,10 +2,13 @@
 
 set -e
 
-wget https://s3.amazonaws.com/mapbox/rasterio/rasterio-0.24.0-linux-x86_64.tar.gz
-tar xzf rasterio-0.24.0-linux-x86_64.tar.gz
+wget https://www.dropbox.com/s/8td2ityvytlgb47/rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
 
-DATA_DIR="rasterio-0.24.0-linux-x86_64/data"
+#wget https://s3.amazonaws.com/mapbox/rasterio/rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
+
+tar xzf rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
+
+DATA_DIR="rasterio-0.24.0-$TRAVIS_PYTHON_VERSION-linux-x86_64/data"
 
 INSTALL_ARGS=''
 if [ -f "$DATA_DIR/requirements.txt" ]; then
