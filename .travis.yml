@@ -11,7 +11,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libgdal1h gdal-bin libgdal-dev
 install:
-  - ./.travis-install-platter-$TRAVIS_PYTHON_VERSION.sh
+  - ./.travis-install-platter.sh
   - pip install coveralls --cache-dir $HOME/.pip-cache
   - pip install -e .[test] --cache-dir $HOME/.pip-cache
 script:
