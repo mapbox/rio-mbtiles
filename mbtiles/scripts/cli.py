@@ -5,12 +5,11 @@ import math
 from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
-import sys
 
 import click
 import mercantile
 import rasterio
-from rasterio.rio.cli import cli, output_opt, resolve_inout
+from rasterio.rio.helpers import resolve_inout
 from rasterio.warp import transform
 
 from mbtiles import buffer, init_worker, process_tile
@@ -20,7 +19,7 @@ from mbtiles import __version__ as mbtiles_version
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 
 
-@cli.command(short_help="Export a dataset to MBTiles.")
+@click.command(short_help="Export a dataset to MBTiles.")
 @click.argument(
     'files',
     nargs=-1,
@@ -191,5 +190,3 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
 
         conn.close()
         # Done!
-
-        sys.exit(0)
