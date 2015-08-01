@@ -5,17 +5,14 @@ python:
 cache:
   directories:
     - $HOME/.pip-cache/
-    - /home/travis/virtualenv/python2.7
-    - /home/travis/virtualenv/python3.4
 before_install:
   - sudo add-apt-repository -y ppa:ubuntugis/ppa
   - sudo apt-get update -qq
   - sudo apt-get install -y libgdal1h gdal-bin libgdal-dev
   - wget https://s3.amazonaws.com/mapbox/rasterio/rasterio-0.25.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
   - tar xzf rasterio-0.25.0-$TRAVIS_PYTHON_VERSION-linux-x86_64.tar.gz
-  - ./.travis-install-platter.sh
+  - ./.travis-install-platter.sh /home/travis/virtualenv/python$TRAVIS_PYTHON_VERSION
 install:
-  - pip install coveralls --cache-dir $HOME/.pip-cache
   - pip install -e .[test] --cache-dir $HOME/.pip-cache
 script:
   - py.test --cov mbtiles --cov-report term-missing
