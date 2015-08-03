@@ -1,4 +1,9 @@
-1.1.0 (2015-05-11)
+1.2.0 (2015-08-03)
+------------------
+- Register rio-mbtiles to rasterio.rio_plugins (#7).
+- Use Rasterio's release-test-4 (0.25) wheels to speed up Travis builds (#11).
+
+- 1.1.0 (2015-05-11)
 ------------------
 - Rename module from rio_mbtiles to mbtiles (#2). Command remains the same.
 

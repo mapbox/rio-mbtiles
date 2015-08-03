@@ -66,5 +66,5 @@ Installation
 ------------
 
 If you've already 
-`installed Rasterio <https://github.com/mapbox/rasterio#installation>`,
+`installed Rasterio <https://github.com/mapbox/rasterio#installation>`__,
 installation is just ``pip install rio-mbtiles``.
