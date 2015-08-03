@@ -35,7 +35,7 @@ setup(name='rio-mbtiles',
           'rasterio>=0.23'
       ],
       extras_require={
-          'test': ['pytest', 'pytest-cov'],
+          'test': ['coveralls', 'pytest', 'pytest-cov'],
       },
       entry_points="""
       [rasterio.rio_plugins]
