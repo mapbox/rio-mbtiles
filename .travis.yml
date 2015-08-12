@@ -15,10 +15,10 @@ cache:
     - $HOME/.pip-cache/
     - $HOME/wheelhouse
 before_install:
-  - curl -L https://github.com/mapbox/rasterio/releases/download/$RASTERIO_VERSION/rasterio-travis-wheels-$TRAVIS_PYTHON_VERSION.tar.gz > /tmp/wheelhouse.tar.gz
-  - tar -xzvf /tmp/wheelhouse.tar.gz -C $HOME
+  - "./.travis_riodeps.sh"
 install:
-  - pip install --use-wheel --find-links=$HOME/wheelhouse -e .[test] --cache-dir $HOME/.pip-cache
+  - "pip install -U pip"
+  - "pip install --use-wheel --find-links=$HOME/wheelhouse -e .[test] --cache-dir $HOME/.pip-cache"
 script:
   - py.test --cov mbtiles --cov-report term-missing
 after_success:
