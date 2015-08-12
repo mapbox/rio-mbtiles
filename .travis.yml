@@ -9,8 +9,6 @@ cache:
     - $HOME/.pip-cache/
     - $HOME/wheelhouse
 before_install:
-  - sudo add-apt-repository -y ppa:ubuntugis/ppa
-  - sudo apt-get update -qq
   - sudo apt-get install -y libgdal1h gdal-bin
   - curl -L https://github.com/mapbox/rasterio/releases/download/$RASTERIO_VERSION/rasterio-travis-wheels-$TRAVIS_PYTHON_VERSION.tar.gz > /tmp/wheelhouse.tar.gz
   - tar -xzvf /tmp/wheelhouse.tar.gz -C $HOME
