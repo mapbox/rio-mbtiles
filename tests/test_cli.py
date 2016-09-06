@@ -7,10 +7,7 @@ import pytest
 
 from mbtiles.scripts.cli import mbtiles
 
-# logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
-
-
-
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 
 def test_cli_help(runner):

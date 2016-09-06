@@ -4,7 +4,6 @@ import os
 import shutil
 import sys
 
-import py
 import pytest
 from click.testing import CliRunner
 
