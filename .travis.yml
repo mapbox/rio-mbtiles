@@ -1,7 +1,6 @@
-sudo: false
 language: python
 env:
-  - RASTERIO_VERSION=0.26.0
+  - RASTERIO_VERSION=0.36.0
 addons:
   apt:
     packages:
@@ -10,6 +9,7 @@ addons:
 python:
   - "2.7"
   - "3.4"
+  - "3.5"
 cache:
   directories:
     - $HOME/.pip-cache/

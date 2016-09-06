@@ -32,7 +32,7 @@ setup(name='rio-mbtiles',
       install_requires=[
           'click',
           'mercantile',
-          'rasterio>=0.23'
+          'rasterio>=0.36'
       ],
       extras_require={
           'test': ['coveralls', 'pytest', 'pytest-cov'],
