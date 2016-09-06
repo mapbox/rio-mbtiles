@@ -14,8 +14,8 @@ cache:
   directories:
     - $HOME/.pip-cache/
     - $HOME/wheelhouse
-#before_install:
-#  - "./.travis_riodeps.sh"
+before_install:
+  - "./.travis_riodeps.sh"
 install:
   - "pip install -U pip"
   - "pip install --use-wheel --find-links=$HOME/wheelhouse -e .[test] --cache-dir $HOME/.pip-cache"
