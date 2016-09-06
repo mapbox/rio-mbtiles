@@ -4,9 +4,8 @@ import os
 import shutil
 import sys
 
-import py
 import pytest
-import rasterio
+from click.testing import CliRunner
 
 
 if sys.version_info > (3,):
@@ -26,10 +25,16 @@ def pytest_cmdline_main(config):
         sys.exit(1)
 
 
-@pytest.fixture(scope='function')
-def data():
+@pytest.fixture
+def data(tmpdir):
     """A temporary directory containing a copy of the files in data."""
-    tmpdir = py.test.ensuretemp('tests/data')
+    tmpdir = tmpdir.join('tests/data')
+    os.makedirs(str(tmpdir))
     for filename in test_files:
         shutil.copy(filename, str(tmpdir))
     return tmpdir
+
+
+@pytest.fixture(scope='function')
+def runner():
+    return CliRunner()
