@@ -20,9 +20,9 @@ def test_cli_help():
     assert "Export a dataset to MBTiles (version 1.1)" in result.output
 
 
-def test_export_metadata(data):
+def test_export_metadata(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(mbtiles, [inputfile, outputfile])
     assert result.exit_code == 0
@@ -32,9 +32,9 @@ def test_export_metadata(data):
     assert cur.fetchone()[1] == 'RGB.byte.tif'
 
 
-def test_export_metadata_output_opt(data):
+def test_export_metadata_output_opt(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(mbtiles, [inputfile, '-o', outputfile])
     assert result.exit_code == 0
@@ -44,9 +44,9 @@ def test_export_metadata_output_opt(data):
     assert cur.fetchone()[1] == 'RGB.byte.tif'
 
 
-def test_export_tiles(data):
+def test_export_tiles(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(mbtiles, [inputfile, outputfile])
     assert result.exit_code == 0
@@ -56,9 +56,9 @@ def test_export_tiles(data):
     assert len(cur.fetchall()) == 6
 
 
-def test_export_zoom(data):
+def test_export_zoom(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(
         mbtiles, [inputfile, outputfile, '--zoom-levels', '6..7'])
@@ -69,9 +69,9 @@ def test_export_zoom(data):
     assert len(cur.fetchall()) == 6
 
 
-def test_export_jobs(data):
+def test_export_jobs(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(
         mbtiles, [inputfile, outputfile, '-j', '4'])
@@ -82,9 +82,9 @@ def test_export_jobs(data):
     assert len(cur.fetchall()) == 6
 
 
-def test_export_dump(data):
+def test_export_dump(data, tmpdir):
     inputfile = str(data.join('RGB.byte.tif'))
-    outputfile = str(data.join('export.mbtiles'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
     dumpdir = pytest.ensuretemp('dump')
     runner = CliRunner()
     result = runner.invoke(

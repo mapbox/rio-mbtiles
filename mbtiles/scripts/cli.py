@@ -10,6 +10,7 @@ import click
 import mercantile
 import rasterio
 from rasterio.rio.helpers import resolve_inout
+from rasterio.rio.options import force_overwrite_opt
 from rasterio.warp import transform
 
 from mbtiles import buffer, init_worker, process_tile
@@ -55,10 +56,11 @@ DEFAULT_NUM_WORKERS = cpu_count() - 1
 @click.option('-j', 'num_workers', type=int, default=DEFAULT_NUM_WORKERS,
               help="Number of worker processes (default: %d)." % (
                   DEFAULT_NUM_WORKERS))
+@force_overwrite_opt
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output_opt, title, description, layer_type,
-            img_format, zoom_levels, image_dump, num_workers):
+            img_format, zoom_levels, image_dump, num_workers, force_overwrite):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -80,10 +82,11 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
     verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1
     logger = logging.getLogger('rio')
 
-    output, files = resolve_inout(files=files, output=output_opt)
+    output, files = resolve_inout(
+        files=files, output=output_opt, force_overwrite=force_overwrite)
     inputfile = files[0]
 
-    with rasterio.drivers(CPL_DEBUG=verbosity > 2):
+    with rasterio.Env(CPL_DEBUG=verbosity > 2):
 
         # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
