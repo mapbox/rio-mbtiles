@@ -8,6 +8,7 @@ env:
 addons:
   apt:
     packages:
+      - libgdal-dev
       - libgdal1h
       - gdal-bin
 python:
