@@ -18,7 +18,7 @@ cache:
     - $HOME/.pip-cache/
 install:
   - "pip install -U pip"
-  - "pip install numpy>=1.10"
+  - "pip install numpy>=1.10 -vv"
   - "pip install --pre rasterio==1.0a1"
   - "pip list"
   - "pip install -e .[test]"
