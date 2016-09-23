@@ -1,7 +1,9 @@
 sudo: false
 language: python
 env:
-  - RASTERIO_VERSION=0.26.0
+  global:
+    - PIP_WHEEL_DIR=$HOME/.pip-cache/
+    - PIP_FIND_LINKS=$HOME/.pip-cache/
 addons:
   apt:
     packages:
@@ -13,12 +15,10 @@ python:
 cache:
   directories:
     - $HOME/.pip-cache/
-    - $HOME/wheelhouse
-before_install:
-  - "./.travis_riodeps.sh"
 install:
   - "pip install -U pip"
-  - "pip install --use-wheel --find-links=$HOME/wheelhouse -e .[test] --cache-dir $HOME/.pip-cache"
+  - "pip install --pre rasterio==1.0a1"
+  - "pip install -e .[test]"
 script:
   - py.test --cov mbtiles --cov-report term-missing
 after_success:
