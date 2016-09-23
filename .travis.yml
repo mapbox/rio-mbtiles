@@ -12,17 +12,15 @@ addons:
       - gdal-bin
 python:
   - "2.7"
-  - "3.4"
+  - "3.5"
 cache:
   directories:
     - $HOME/.pip-cache/
 install:
-  - "pip install -U pip"
-  - "pip list"
+  - pip install -U pip
   - pip install "numpy>=1.10"
-  - "pip install --pre rasterio==1.0a1"
-  - "pip list"
-  - "pip install -e .[test]"
+  - pip install --no-binary rasterio rasterio==1.0a1
+  - pip install -e .[test]
 script:
   - py.test --cov mbtiles --cov-report term-missing
 after_success:
