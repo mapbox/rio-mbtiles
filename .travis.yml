@@ -19,7 +19,7 @@ cache:
 install:
   - "pip install -U pip"
   - "pip list"
-  - "pip install numpy>=1.10"
+  - pip install "numpy>=1.10"
   - "pip install --pre rasterio==1.0a1"
   - "pip list"
   - "pip install -e .[test]"
