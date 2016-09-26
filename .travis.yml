@@ -19,6 +19,7 @@ cache:
     - $HOME/.pip-cache/
 install:
   - pip install -U pip
+  - python -c "import sys; print(sys.maxunicode)"
   - pip install "numpy>=1.10"
   - pip install --pre --no-binary rasterio rasterio==1.0a1
   - pip install -e .[test]
