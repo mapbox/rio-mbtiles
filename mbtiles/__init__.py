@@ -40,6 +40,4 @@ def process_tile(tile):
                 rasterio.band(src, bidx),
                 rasterio.band(tmp, bidx))
 
-    # Get contents of the virtual file and repair it.
-    contents = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
-    return tile, contents[-1:] + contents[:-1]
+    return tile, bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
