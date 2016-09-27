@@ -1,3 +1,7 @@
+1.3a1 (2016-09-27)
+------------------
+- Require rasterio>=1.0a1
+
 1.2.0 (2015-08-03)
 ------------------
 - Register rio-mbtiles to rasterio.rio_plugins (#7).
