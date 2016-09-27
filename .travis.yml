@@ -1,24 +1,26 @@
 sudo: false
 language: python
+dist: trusty
 env:
-  - RASTERIO_VERSION=0.26.0
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip
+    - PIP_FIND_LINKS=$HOME/.cache/pip
 addons:
   apt:
     packages:
+      - libgdal-dev
       - libgdal1h
       - gdal-bin
 python:
   - "2.7"
-  - "3.4"
+  - "3.5"
 cache:
   directories:
-    - $HOME/.pip-cache/
-    - $HOME/wheelhouse
-before_install:
-  - "./.travis_riodeps.sh"
+    - $HOME/.cache/pip/
 install:
-  - "pip install -U pip"
-  - "pip install --use-wheel --find-links=$HOME/wheelhouse -e .[test] --cache-dir $HOME/.pip-cache"
+  - pip install -U pip
+  - pip install --pre --no-binary rasterio rasterio==1.0a1
+  - pip install -e .[test]
 script:
   - py.test --cov mbtiles --cov-report term-missing
 after_success:

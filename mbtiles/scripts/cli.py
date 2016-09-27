@@ -10,6 +10,7 @@ import click
 import mercantile
 import rasterio
 from rasterio.rio.helpers import resolve_inout
+from rasterio.rio.options import force_overwrite_opt, output_opt
 from rasterio.warp import transform
 
 from mbtiles import buffer, init_worker, process_tile
@@ -26,12 +27,8 @@ DEFAULT_NUM_WORKERS = cpu_count() - 1
     type=click.Path(resolve_path=True),
     required=True,
     metavar="INPUT [OUTPUT]")
-@click.option(
-    '-o', '--output', 'output_opt',
-    default=None,
-    type=click.Path(resolve_path=True),
-    help="Path to output file (optional alternative to a positional arg "
-         "for some commands).")
+@output_opt
+@force_overwrite_opt
 @click.option('--title', help="MBTiles dataset title.")
 @click.option('--description', help="MBTiles dataset description.")
 @click.option('--overlay', 'layer_type', flag_value='overlay', default=True,
@@ -57,8 +54,8 @@ DEFAULT_NUM_WORKERS = cpu_count() - 1
                   DEFAULT_NUM_WORKERS))
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
-def mbtiles(ctx, files, output_opt, title, description, layer_type,
-            img_format, zoom_levels, image_dump, num_workers):
+def mbtiles(ctx, files, output, force_overwrite, title, description,
+            layer_type, img_format, zoom_levels, image_dump, num_workers):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -76,14 +73,13 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
 
     Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
     """
-
-    verbosity = (ctx.obj and ctx.obj.get('verbosity')) or 1
-    logger = logging.getLogger('rio')
-
-    output, files = resolve_inout(files=files, output=output_opt)
+    output, files = resolve_inout(files=files, output=output,
+                                  force_overwrite=force_overwrite)
     inputfile = files[0]
 
-    with rasterio.drivers(CPL_DEBUG=verbosity > 2):
+    logger = logging.getLogger('rio-mbtiles')
+
+    with ctx.obj['env']:
 
         # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
@@ -100,10 +96,11 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
         if zoom_levels:
             minzoom, maxzoom = map(int, zoom_levels.split('..'))
         else:
-            zw = int(round(math.log(360.0/(east-west), 2.0)))
-            zh = int(round(math.log(170.1022/(north-south), 2.0)))
+            zw = int(round(math.log(360.0 / (east - west), 2.0)))
+            zh = int(round(math.log(170.1022 / (north - south), 2.0)))
             minzoom = min(zw, zh)
             maxzoom = max(zw, zh)
+
         logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
         # Parameters for creation of tile images.
@@ -157,14 +154,14 @@ def mbtiles(ctx, files, output_opt, title, description, layer_type,
 
         # Constrain bounds.
         EPS = 1.0e-10
-        west = max(-180+EPS, west)
+        west = max(-180 + EPS, west)
         south = max(-85.051129, south)
-        east = min(180-EPS, east)
+        east = min(180 - EPS, east)
         north = min(85.051129, north)
 
         # Initialize iterator over output tiles.
         tiles = mercantile.tiles(
-            west, south, east, north, range(minzoom, maxzoom+1))
+            west, south, east, north, range(minzoom, maxzoom + 1))
 
         for tile, contents in pool.imap_unordered(process_tile, tiles):
 
