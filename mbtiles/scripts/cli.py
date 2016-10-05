@@ -20,6 +20,13 @@ from mbtiles import __version__ as mbtiles_version
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 
 
+def validate_nodata(dst_nodata, src_nodata, meta_nodata):
+    """Raise BadParameter if we don't have a src nodata for a dst"""
+    if dst_nodata is not None and (src_nodata is None and meta_nodata is None):
+        raise click.BadParameter("--src-nodata must be provided because "
+                                 "dst-nodata is not None.")
+
+
 @click.command(short_help="Export a dataset to MBTiles.")
 @click.argument(
     'files',
@@ -35,7 +42,7 @@ DEFAULT_NUM_WORKERS = cpu_count() - 1
               help="Export as an overlay (the default).")
 @click.option('--baselayer', 'layer_type', flag_value='baselayer',
               help="Export as a base layer.")
-@click.option('--format', 'img_format', type=click.Choice(['JPEG', 'PNG']),
+@click.option('-f', '--format', 'img_format', type=click.Choice(['JPEG', 'PNG']),
               default='JPEG',
               help="Tile image format.")
 @click.option('--zoom-levels',
@@ -52,10 +59,15 @@ DEFAULT_NUM_WORKERS = cpu_count() - 1
 @click.option('-j', 'num_workers', type=int, default=DEFAULT_NUM_WORKERS,
               help="Number of worker processes (default: %d)." % (
                   DEFAULT_NUM_WORKERS))
+@click.option('--src-nodata', default=None, show_default=True,
+              type=float, help="Manually override source nodata")
+@click.option('--dst-nodata', default=None, show_default=True,
+              type=float, help="Manually override destination nodata")
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output, force_overwrite, title, description,
-            layer_type, img_format, zoom_levels, image_dump, num_workers):
+            layer_type, img_format, zoom_levels, image_dump, num_workers,
+            src_nodata, dst_nodata):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -84,6 +96,15 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
         # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
 
+            validate_nodata(dst_nodata, src_nodata, src.profile.get('nodata'))
+            base_kwds = {'dst_nodata': dst_nodata, 'src_nodata': src_nodata}
+
+            if src_nodata is not None:
+                base_kwds.update(nodata=src_nodata)
+
+            if dst_nodata is not None:
+                base_kwds.update(nodata=dst_nodata)
+
             # Name and description.
             title = title or os.path.basename(src.name)
             description = description or src.name
@@ -104,14 +125,14 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
         logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
         # Parameters for creation of tile images.
-        base_kwds = {
+        base_kwds.update({
             'driver': img_format.upper(),
             'dtype': 'uint8',
             'nodata': 0,
             'height': 256,
             'width': 256,
             'count': 3,
-            'crs': 'EPSG:3857'}
+            'crs': 'EPSG:3857'})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
