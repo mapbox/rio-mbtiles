@@ -9,7 +9,7 @@ from rasterio._io import virtual_file_to_buffer
 
 buffer = bytes if sys.version_info > (3,) else buffer
 
-__version__ = '1.3a1'
+__version__ = '1.3.0'
 
 base_kwds = None
 src = None
@@ -23,7 +23,7 @@ def init_worker(path, profile):
 
 def process_tile(tile):
     """Process a single MBTiles tile
-    
+
     Parameters
     ----------
     tile : mercantile.Tile
@@ -43,10 +43,15 @@ def process_tile(tile):
 
     kwds = base_kwds.copy()
     kwds['transform'] = from_bounds(ulx, lry, lrx, uly, 256, 256)
+    src_nodata = kwds.pop('src_nodata', None)
+    dst_nodata = kwds.pop('dst_nodata', None)
 
     with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
         reproject(rasterio.band(src, src.indexes),
-                  rasterio.band(tmp, tmp.indexes))
+                  rasterio.band(tmp, tmp.indexes),
+                  src_nodata=src_nodata,
+                  dst_nodata=dst_nodata,
+                  num_threads=1)
 
     data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
 

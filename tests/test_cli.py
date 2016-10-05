@@ -3,12 +3,13 @@ import os
 import sqlite3
 import sys
 
+import click
 from click.testing import CliRunner
 import pytest
 import rasterio
 from rasterio.rio.main import main_group
 
-from mbtiles.scripts.cli import mbtiles
+from mbtiles.scripts.cli import validate_nodata
 
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -21,11 +22,32 @@ def test_cli_help():
     assert "Export a dataset to MBTiles (version 1.1)" in result.output
 
 
+def test_nodata_validation():
+    """Insufficient nodata definition leads to BadParameter"""
+    with pytest.raises(click.BadParameter):
+        validate_nodata(0, None, None)
+
+
 def test_export_metadata(tmpdir, data):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(main_group, ['mbtiles', inputfile, outputfile])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from metadata where name == 'name'")
+    assert cur.fetchone()[1] == 'RGB.byte.tif'
+
+
+def test_export_overwrite(tmpdir, data):
+    """Overwrites existing file"""
+    inputfile = str(data.join('RGB.byte.tif'))
+    output = tmpdir.join('export.mbtiles')
+    output.write("lolwut")
+    outputfile = str(output)
+    runner = CliRunner()
+    result = runner.invoke(main_group, ['mbtiles', '--force-overwrite', inputfile, outputfile])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
@@ -77,6 +99,19 @@ def test_export_jobs(tmpdir, data):
     runner = CliRunner()
     result = runner.invoke(
         main_group, ['mbtiles', inputfile, outputfile, '-j', '4'])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    assert len(cur.fetchall()) == 6
+
+
+def test_export_src_nodata(tmpdir, data):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group, ['mbtiles', inputfile, outputfile, '--src-nodata', '0', '--dst-nodata', '0'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
