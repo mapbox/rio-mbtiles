@@ -13,7 +13,7 @@ cache:
     - $HOME/.cache/pip/
 install:
   - pip install -U pip
-  - pip install --pre rasterio
+  - pip install -r requirements-dev.txt
   - pip install -e .[test]
 script:
   - py.test --cov mbtiles --cov-report term-missing
