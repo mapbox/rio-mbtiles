@@ -28,10 +28,15 @@ Usage
 
       If a title or description for the output file are not provided, they will
       be taken from the input dataset's filename.
+      
+      This command is suited for small to medium (~1 GB) sized sources.
+      
+      Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
 
     Options:
       -o, --output PATH       Path to output file (optional alternative to a
-                              positional arg for some commands).
+                              positional arg).
+      --force-overwrite       Always overwrite an existing output file.
       --title TEXT            MBTiles dataset title.
       --description TEXT      MBTiles dataset description.
       --overlay               Export as an overlay (the default).
@@ -42,7 +47,10 @@ Usage
                               contained within a single tile.
       --image-dump PATH       A directory into which image tiles will be
                               optionally dumped.
-      -j INTEGER              Number of worker processes (default: 1).
+      -j INTEGER              Number of worker processes (default: 3).
+      --src-nodata FLOAT      Manually override source nodata
+      --dst-nodata FLOAT      Manually override destination nodata
+      --version               Show the version and exit.
       --help                  Show this message and exit.
 
 Performance
