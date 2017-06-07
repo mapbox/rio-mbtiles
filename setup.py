@@ -33,7 +33,7 @@ setup(name='rio-mbtiles',
           'click',
           'mercantile',
           'numpy>=1.10',
-          'rasterio>=1.0a2'
+          'rasterio>=1.0a9'
       ],
       extras_require={
           'test': ['coveralls', 'pytest', 'pytest-cov'],
