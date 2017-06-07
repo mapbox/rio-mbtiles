@@ -217,7 +217,8 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
                                dst_height=dst_height,
                                dst_transform=dst_transform,
                                dst_nodata=dst_nodata, src_nodata=src_nodata,
-                               resampling=Resampling.cubic) as vrt:
+                               resampling=Resampling.nearest,
+                               num_threads=2) as vrt:
 
                     for tile in mercantile.tiles(west, south, east, north,
                                                  [zoom]):
