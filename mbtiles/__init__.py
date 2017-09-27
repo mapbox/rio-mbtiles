@@ -2,6 +2,7 @@ import sys
 
 import mercantile
 import rasterio
+from rasterio.enums import Resampling
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject
 from rasterio._io import virtual_file_to_buffer
@@ -15,8 +16,9 @@ base_kwds = None
 src = None
 
 
-def init_worker(path, profile):
-    global base_kwds, src
+def init_worker(path, profile, resampling_method):
+    global base_kwds, src, resampling
+    resampling = Resampling[resampling_method]
     base_kwds = profile.copy()
     src = rasterio.open(path)
 
@@ -34,7 +36,7 @@ def process_tile(tile):
     bytes : bytearray
         Image bytes corresponding to the tile.
     """
-    global base_kwds, src
+    global base_kwds, resampling, src
     # Get the bounds of the tile.
     ulx, uly = mercantile.xy(
         *mercantile.ul(tile.x, tile.y, tile.z))
@@ -51,7 +53,8 @@ def process_tile(tile):
                   rasterio.band(tmp, tmp.indexes),
                   src_nodata=src_nodata,
                   dst_nodata=dst_nodata,
-                  num_threads=1)
+                  num_threads=1,
+                  resampling=resampling)
 
     data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
 

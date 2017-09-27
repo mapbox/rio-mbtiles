@@ -9,6 +9,7 @@ import sqlite3
 import click
 import mercantile
 import rasterio
+from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import force_overwrite_opt, output_opt
 from rasterio.warp import transform
@@ -18,6 +19,7 @@ from mbtiles import __version__ as mbtiles_version
 
 
 DEFAULT_NUM_WORKERS = cpu_count() - 1
+RESAMPLING_METHODS = [method.name for method in Resampling]
 
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
@@ -63,11 +65,14 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               type=float, help="Manually override source nodata")
 @click.option('--dst-nodata', default=None, show_default=True,
               type=float, help="Manually override destination nodata")
+@click.option('--resampling', type=click.Choice(RESAMPLING_METHODS),
+              default='nearest', show_default=True,
+              help="Resampling method to use.")
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output, force_overwrite, title, description,
             layer_type, img_format, zoom_levels, image_dump, num_workers,
-            src_nodata, dst_nodata):
+            src_nodata, dst_nodata, resampling):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -171,7 +176,8 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
         conn.commit()
 
         # Create a pool of workers to process tile tasks.
-        pool = Pool(num_workers, init_worker, (inputfile, base_kwds), 100)
+        pool = Pool(num_workers, init_worker,
+                    (inputfile, base_kwds, resampling), 100)
 
         # Constrain bounds.
         EPS = 1.0e-10

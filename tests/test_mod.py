@@ -12,7 +12,8 @@ def test_process_tile(data):
             'height': 256,
             'width': 256,
             'count': 3,
-            'crs': 'EPSG:3857'})
+            'crs': 'EPSG:3857'},
+            "nearest")
     tile, contents = mbtiles.process_tile(mercantile.Tile(36, 73, 7))
     assert tile.x == 36
     assert tile.y == 73
