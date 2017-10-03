@@ -2,6 +2,7 @@ import sys
 
 import mercantile
 import rasterio
+from rasterio.io import MemoryFile
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject
 from rasterio._io import virtual_file_to_buffer
@@ -46,14 +47,14 @@ def process_tile(tile):
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 
-    with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
-        reproject(rasterio.band(src, src.indexes),
-                  rasterio.band(tmp, tmp.indexes),
-                  src_nodata=src_nodata,
-                  dst_nodata=dst_nodata,
-                  num_threads=1)
-
-    data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
+    with MemoryFile() as memfile:
+        with memfile.open(**kwds) as tmp:
+            reproject(rasterio.band(src, src.indexes),
+                      rasterio.band(tmp, tmp.indexes),
+                      src_nodata=src_nodata,
+                      dst_nodata=dst_nodata,
+                      num_threads=1)
+        data = memfile.read()
 
     # Workaround for https://bugs.python.org/issue23349.
     if sys.version_info[0] == 2 and sys.version_info[2] < 10:

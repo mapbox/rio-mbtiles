@@ -39,7 +39,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.argument(
     'files',
     nargs=-1,
-    type=click.Path(resolve_path=True),
+    type=click.Path(resolve_path=False),
     required=True,
     metavar="INPUT [OUTPUT]")
 @output_opt
@@ -147,10 +147,10 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             'driver': img_format,
             'dtype': 'uint8',
             'nodata': 0,
-            'height': tilesize,
-            'width': tilesize,
-            'crs': 'EPSG:3857',
-            'transform': Affine.identity()})
+            'height': 256,
+            'width': 256,
+            'count': max(src.count, 3),
+            'crs': 'EPSG:3857'})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
@@ -195,30 +195,13 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
         east = min(180 - EPS, east)
         north = min(85.051129, north)
 
-        # Find the smallest mercator tile containing the geographic
-        # bounds. This tile will be used to parameterize a warped VRT.
-        bounding_tile = mercantile.bounding_tile(west, south, east, north)
-        extent = mercantile.xy_bounds(*bounding_tile)
-
-        logger.debug("Bounding tile: %r, extent: %r", bounding_tile, extent)
-
         with rasterio.open(inputfile) as src:
 
-            for zoom in range(minzoom, maxzoom + 1):
+            with WarpedVRT(src, dst_crs='EPSG:3857', dst_nodata=dst_nodata,
+                           resampling=Resampling.bilinear,
+                           num_threads=2) as vrt:
 
-                dst_width = dst_height = (2 ** (zoom - bounding_tile.z)) * tilesize
-                resolution = ((extent.right - extent.left) / dst_width,
-                              (extent.top - extent.bottom) / dst_height)
-
-                dst_transform = Affine(resolution[0], 0.0, extent.left,
-                                       0.0, -resolution[1], extent.top)
-
-                with WarpedVRT(src, dst_crs='EPSG:3857', dst_width=dst_width,
-                               dst_height=dst_height,
-                               dst_transform=dst_transform,
-                               dst_nodata=dst_nodata, src_nodata=src_nodata,
-                               resampling=Resampling.nearest,
-                               num_threads=2) as vrt:
+                for zoom in range(minzoom, maxzoom + 1):
 
                     for tile in mercantile.tiles(west, south, east, north,
                                                  [zoom]):
@@ -226,8 +209,12 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
                         logger.debug("Tile: %r", tile)
 
                         window = vrt.window(*mercantile.xy_bounds(*tile))
+
+                        logger.debug("VRT Window: %r", window)
+
                         bands = vrt.read(window=window,
-                                         out_shape=(3, 256, 256))
+                                         out_shape=(3, 256, 256),
+                                         boundless=True)
 
                         logger.debug("bands: %r, shape: %r", bands, bands.shape)
 
