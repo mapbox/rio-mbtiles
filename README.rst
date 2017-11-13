@@ -41,7 +41,8 @@ Usage
       --description TEXT      MBTiles dataset description.
       --overlay               Export as an overlay (the default).
       --baselayer             Export as a base layer.
-      --format [JPEG|PNG]     Tile image format.
+      --format [JPEG|PNG]     Tile image format. PNG format required for nodata
+                              values to display as transparent.
       --zoom-levels MIN..MAX  A min..max range of export zoom levels. The default
                               zoom level is the one at which the dataset is
                               contained within a single tile.
