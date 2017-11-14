@@ -11,7 +11,6 @@ from affine import Affine
 import click
 import mercantile
 import rasterio
-from rasterio._io import virtual_file_to_buffer
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
 from rasterio.rio.helpers import resolve_inout
@@ -23,8 +22,8 @@ from mbtiles import buffer
 from mbtiles import __version__ as mbtiles_version
 
 
+RESAMPLING_METHODS = [method.name for method in Resampling]
 DEFAULT_NUM_WORKERS = 2
-
 tilesize = 256
 
 logger = logging.getLogger(__name__)
@@ -72,11 +71,14 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               type=float, help="Manually override source nodata")
 @click.option('--dst-nodata', default=None, show_default=True,
               type=float, help="Manually override destination nodata")
+@click.option('--resampling', type=click.Choice(RESAMPLING_METHODS),
+              default='nearest', show_default=True,
+              help="Resampling method to use.")
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output, force_overwrite, title, description,
             layer_type, img_format, zoom_levels, image_dump, num_workers,
-            src_nodata, dst_nodata):
+            src_nodata, dst_nodata, resampling):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must

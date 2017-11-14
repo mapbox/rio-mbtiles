@@ -129,3 +129,17 @@ def test_export_dump(tmpdir, data):
         ['mbtiles', inputfile, outputfile, '--image-dump', str(dumpdir)])
     assert result.exit_code == 0
     assert len(os.listdir(str(dumpdir))) == 6
+
+
+def test_export_bilinear(tmpdir, data):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        ['mbtiles', inputfile, outputfile, '--resampling', 'bilinear'])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    assert len(cur.fetchall()) == 6
