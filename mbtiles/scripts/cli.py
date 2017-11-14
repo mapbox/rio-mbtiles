@@ -1,15 +1,17 @@
-# Mbtiles command.
+"""Mbtiles command"""
 
 import logging
 import math
-from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
+import sys
+import warnings
 
 from affine import Affine
 import click
 import mercantile
 import rasterio
+from rasterio._io import virtual_file_to_buffer
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
 from rasterio.rio.helpers import resolve_inout
@@ -17,11 +19,11 @@ from rasterio.rio.options import force_overwrite_opt, output_opt
 from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform
 
-from mbtiles import buffer, init_worker, process_tile
+from mbtiles import buffer
 from mbtiles import __version__ as mbtiles_version
 
 
-DEFAULT_NUM_WORKERS = cpu_count() - 1
+DEFAULT_NUM_WORKERS = 2
 
 tilesize = 256
 
@@ -33,7 +35,6 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     if dst_nodata is not None and (src_nodata is None and meta_nodata is None):
         raise click.BadParameter("--src-nodata must be provided because "
                                  "dst-nodata is not None.")
-
 
 @click.command(short_help="Export a dataset to MBTiles.")
 @click.argument(
@@ -131,120 +132,119 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             (west, east), (south, north) = transform(
                 src.crs, 'EPSG:4326', src.bounds[::2], src.bounds[1::2])
 
-        # Resolve the minimum and maximum zoom levels for export.
-        if zoom_levels:
-            minzoom, maxzoom = map(int, zoom_levels.split('..'))
-        else:
-            zw = int(round(math.log(360.0 / (east - west), 2.0)))
-            zh = int(round(math.log(170.1022 / (north - south), 2.0)))
-            minzoom = min(zw, zh)
-            maxzoom = max(zw, zh)
+            # Resolve the minimum and maximum zoom levels for export.
+            if zoom_levels:
+                minzoom, maxzoom = map(int, zoom_levels.split('..'))
+            else:
+                zw = int(round(math.log(360.0 / (east - west), 2.0)))
+                zh = int(round(math.log(170.1022 / (north - south), 2.0)))
+                minzoom = min(zw, zh)
+                maxzoom = max(zw, zh)
 
-        logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
+            logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
-        # Parameters for creation of tile images.
-        base_kwds.update({
-            'driver': img_format,
-            'dtype': 'uint8',
-            'nodata': 0,
-            'height': 256,
-            'width': 256,
-            'count': max(src.count, 3),
-            'crs': 'EPSG:3857'})
+            # Parameters for creation of tile images.
+            base_kwds.update({
+                'driver': img_format,
+                'dtype': 'uint8',
+                'nodata': 0,
+                'height': 256,
+                'width': 256,
+                'count': max(src.count, 3),
+                'crs': 'EPSG:3857'})
 
-        img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
+            img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
-        # Initialize the sqlite db.
-        if os.path.exists(output):
-            os.unlink(output)
-        conn = sqlite3.connect(output)
-        cur = conn.cursor()
-        cur.execute(
-            "CREATE TABLE tiles "
-            "(zoom_level integer, tile_column integer, "
-            "tile_row integer, tile_data blob);")
-        cur.execute(
-            "CREATE TABLE metadata (name text, value text);")
+            # Initialize the sqlite db.
+            if os.path.exists(output):
+                os.unlink(output)
+            conn = sqlite3.connect(output)
+            cur = conn.cursor()
+            cur.execute(
+                "CREATE TABLE tiles "
+                "(zoom_level integer, tile_column integer, "
+                "tile_row integer, tile_data blob);")
+            cur.execute(
+                "CREATE TABLE metadata (name text, value text);")
 
-        # Insert mbtiles metadata into db.
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("name", title))
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("type", layer_type))
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("version", "1.1"))
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("description", description))
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("format", img_ext))
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("bounds", "%f,%f,%f,%f" % (west, south, east, north)))
+            # Insert mbtiles metadata into db.
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("name", title))
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("type", layer_type))
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("version", "1.1"))
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("description", description))
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("format", img_ext))
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("bounds", "%f,%f,%f,%f" % (west, south, east, north)))
+
+            conn.commit()
+
+            # Constrain longitude and latitude bounds.
+            EPS = 1.0e-10
+            west = max(-180 + EPS, west)
+            south = max(-85.051129, south)
+            east = min(180 - EPS, east)
+            north = min(85.051129, north)
+
+            with WarpedVRT(
+                    src, dst_crs='EPSG:3857', src_nodata=src_nodata,
+                    dst_nodata=dst_nodata, resampling=Resampling.bilinear,
+                    num_threads=num_workers) as vrt, warnings.catch_warnings():
+
+                warnings.simplefilter("ignore", category=UserWarning)
+
+                for tile in mercantile.tiles(
+                        west, south, east, north,
+                        list(range(minzoom, maxzoom + 1))):
+
+                    window = vrt.window(*mercantile.xy_bounds(*tile))
+                    bands = vrt.read(
+                        window=window, out_shape=(3, 256, 256),
+                        boundless=True)
+
+                    with MemoryFile() as memfile:
+                        # Silence the dubious 'No such file or directory.'
+                        # errors coming from the VSIL handler.
+                        gdal_log = logging.getLogger('rasterio._gdal')
+                        gdal_log_level = gdal_log.level
+                        gdal_log.setLevel(logging.CRITICAL)
+                        with memfile.open(**base_kwds) as tmp:
+                            tmp.write(bands)
+                        gdal_log.setLevel(gdal_log_level)
+                    data = memfile.read()
+
+                    # Workaround for https://bugs.python.org/issue23349.
+                    if sys.version_info[0] == 2 and sys.version_info[2] < 10:
+                        data[:] = data[-1:] + data[:-1]
+
+                    # MBTiles has a different origin than Mercantile/tilebelt.
+                    tiley = int(math.pow(2, tile.z)) - tile.y - 1
+
+                    # Optional image dump.
+                    if image_dump:
+                        img_name = '%d-%d-%d.%s' % (
+                            tile.x, tiley, tile.z, img_ext)
+                        img_path = os.path.join(image_dump, img_name)
+                        with open(img_path, 'wb') as img:
+                            img.write(data)
+
+                    # Insert tile into db.
+                    cur.execute(
+                        "INSERT INTO tiles "
+                        "(zoom_level, tile_column, tile_row, tile_data) "
+                        "VALUES (?, ?, ?, ?);",
+                        (tile.z, tile.x, tiley, buffer(data)))
 
         conn.commit()
-
-        # Constrain longitude and latitude bounds.
-        EPS = 1.0e-10
-        west = max(-180 + EPS, west)
-        south = max(-85.051129, south)
-        east = min(180 - EPS, east)
-        north = min(85.051129, north)
-
-        with rasterio.open(inputfile) as src:
-
-            with WarpedVRT(src, dst_crs='EPSG:3857', dst_nodata=dst_nodata,
-                           resampling=Resampling.bilinear,
-                           num_threads=2) as vrt:
-
-                for zoom in range(minzoom, maxzoom + 1):
-
-                    for tile in mercantile.tiles(west, south, east, north,
-                                                 [zoom]):
-
-                        logger.debug("Tile: %r", tile)
-
-                        window = vrt.window(*mercantile.xy_bounds(*tile))
-
-                        logger.debug("VRT Window: %r", window)
-
-                        bands = vrt.read(window=window,
-                                         out_shape=(3, 256, 256),
-                                         boundless=True)
-
-                        logger.debug("bands: %r, shape: %r", bands, bands.shape)
-
-                        # MBTiles has a different origin than Mercantile/tilebelt.
-                        tiley = int(math.pow(2, tile.z)) - tile.y - 1
-
-                        with MemoryFile() as memfile:
-                            with memfile.open(**base_kwds) as dst:
-                                dst.write(bands)
-
-                            contents = memfile.read()
-
-                            logger.debug("Tile: %r, contents: %s", tile, contents[:10])
-
-                        # Optional image dump.
-                        if image_dump:
-                            img_name = '%d-%d-%d.%s' % (
-                                tile.x, tiley, tile.z, img_ext)
-                            img_path = os.path.join(image_dump, img_name)
-                            with open(img_path, 'wb') as img:
-                                img.write(contents)
-
-                        # Insert tile into db.
-                        cur.execute(
-                            "INSERT INTO tiles "
-                            "(zoom_level, tile_column, tile_row, tile_data) "
-                            "VALUES (?, ?, ?, ?);",
-                            (tile.z, tile.x, tiley, buffer(contents)))
-
-                        conn.commit()
-
         conn.close()
         # Done!
