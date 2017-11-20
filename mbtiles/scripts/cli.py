@@ -22,6 +22,8 @@ from mbtiles import __version__ as mbtiles_version
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 RESAMPLING_METHODS = [method.name for method in Resampling]
 
+TILES_CRS = "EPSG:3857"
+
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     """Raise BadParameter if we don't have a src nodata for a dst"""
@@ -138,7 +140,7 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             'height': 256,
             'width': 256,
             'count': 3,
-            'crs': 'EPSG:3857'})
+            'crs': TILES_CRS})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
@@ -198,12 +200,10 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
                        *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
             with rasterio.open(inputfile) as src:
                 (wwest, weast), (wsouth, wnorth) = transform(
-                    'EPSG:3857', src.crs, (ulx, lrx), (lry, uly))
+                    TILES_CRS, src.crs, (ulx, lrx), (lry, uly))
                 tile_window = from_bounds(wwest, wsouth, weast, wnorth,
                                           transform=src.transform)
-                data_window = get_data_window(src.read(1, masked=True,
-                                                       window=tile_window))
-                if data_window.width == 0 and data_window.height == 0:
+                if not src.read_masks(1, window=tile_window).astype('bool').any():
                     continue
 
             # MBTiles has a different origin than Mercantile/tilebelt.
