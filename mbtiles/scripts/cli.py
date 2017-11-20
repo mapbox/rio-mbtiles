@@ -13,6 +13,7 @@ from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import force_overwrite_opt, output_opt
 from rasterio.warp import transform
+from rasterio.windows import get_data_window, from_bounds
 
 from mbtiles import buffer, init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
@@ -191,6 +192,19 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             west, south, east, north, range(minzoom, maxzoom + 1))
 
         for tile, contents in pool.imap_unordered(process_tile, tiles):
+            ulx, uly = mercantile.xy(
+                       *mercantile.ul(tile.x, tile.y, tile.z))
+            lrx, lry = mercantile.xy(
+                       *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
+            with rasterio.open(inputfile) as src:
+                (wwest, weast), (wsouth, wnorth) = transform(
+                    'EPSG:3857', src.crs, (ulx, lrx), (lry, uly))
+                tile_window = from_bounds(wwest, wsouth, weast, wnorth,
+                                          transform=src.transform)
+                data_window = get_data_window(src.read(1, masked=True,
+                                                       window=tile_window))
+                if data_window.width == 0 and data_window.height == 0:
+                    continue
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
