@@ -49,6 +49,8 @@ def process_tile(tile):
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 
+    # set logger to filter warnings that appear due to a bug in rasterio;
+    # the bug will be fixed in rasterio 1.0, and then this can be removed
     gdal_log = logging.getLogger('rasterio._gdal')
     gdal_log_level = gdal_log.level
     gdal_log.setLevel(logging.CRITICAL)
