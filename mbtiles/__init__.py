@@ -49,7 +49,7 @@ def process_tile(tile):
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 
-    # Reproject into a GeoTIFF tile.
+    # Reproject into a JPEG or PNG tile.
     with MemoryFile() as memdst:
         with memdst.open(**kwds) as tiledst:
             reproject(
