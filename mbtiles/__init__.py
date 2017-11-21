@@ -5,11 +5,9 @@ import sys
 import mercantile
 import rasterio
 from rasterio.enums import Resampling
-from rasterio.shutil import copy
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject
 from rasterio.io import MemoryFile
-from rasterio._io import virtual_file_to_buffer
 
 buffer = bytes if sys.version_info > (3,) else buffer
 
@@ -50,7 +48,6 @@ def process_tile(tile):
     kwds['transform'] = from_bounds(ulx, lry, lrx, uly, 256, 256)
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
-    kwds['driver'] = 'GTiff'
 
     # Reproject into a GeoTIFF tile.
     with MemoryFile() as memdst:
@@ -69,12 +66,7 @@ def process_tile(tile):
         with memdst.open() as tiledst:
             mask = tiledst.read_masks(1)
             if mask.any():
-                # We're using MemoryFile to get a filename from
-                # the in-memory filesystem only; it doesn't support
-                # copy yet.
-                with MemoryFile() as memimg:
-                    copy(tiledst, memimg.name, driver=base_kwds['driver'])
-                    img_bytes = bytearray(virtual_file_to_buffer(memimg.name))
+                img_bytes = memdst.read()
                 # Workaround for https://bugs.python.org/issue23349.
                 if sys.version_info[0] == 2 and sys.version_info[2] < 10:
                     img_bytes[:] = img_bytes[-1:] + img_bytes[:-1]
