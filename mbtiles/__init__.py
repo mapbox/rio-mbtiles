@@ -16,6 +16,8 @@ __version__ = '1.3.0'
 base_kwds = None
 src = None
 
+TILES_CRS = 'EPSG:3857'
+
 
 def init_worker(path, profile, resampling_method):
     global base_kwds, src, resampling
@@ -51,8 +53,10 @@ def process_tile(tile):
 
     with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
 
+        # determine window of source raster corresponding to the tile
+        # image, with small buffer at edges
         west, south, east, north = transform_bounds(
-                             "EPSG:3857", src.crs, ulx, lry, lrx, uly)
+                             TILES_CRS, src.crs, ulx, lry, lrx, uly)
         tile_window = window_from_bounds(
                 west, south, east, north, transform=src.transform)
         tile_window.col_off -= 1
@@ -61,6 +65,7 @@ def process_tile(tile):
         tile_window.height += 2
         tile_window = tile_window.round_offsets().round_shape()
 
+        # if no data in window, skip processing the tile
         if not src.read_masks(1, window=tile_window).any():
             return tile, None
 

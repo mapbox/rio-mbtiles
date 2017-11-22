@@ -21,7 +21,7 @@ from mbtiles import __version__ as mbtiles_version
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 RESAMPLING_METHODS = [method.name for method in Resampling]
 
-TILES_CRS = "EPSG:3857"
+TILES_CRS = 'EPSG:3857'
 
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
