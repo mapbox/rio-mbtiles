@@ -5,6 +5,6 @@ cython==0.21.2
 enum34
 numpy>=1.10
 pytest
-rasterio>=1.0a2
+rasterio>=1.0a10
 snuggs>=1.2
 setuptools>=0.9.8
