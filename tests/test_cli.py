@@ -143,3 +143,18 @@ def test_export_bilinear(tmpdir, data):
     cur = conn.cursor()
     cur.execute("select * from tiles")
     assert len(cur.fetchall()) == 6
+
+
+def test_skip_empty(tmpdir, data):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        ['mbtiles', inputfile, outputfile, '--zoom-levels', '6..9'])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    # there would be 32 tiles if empty tiles were not skipped
+    assert len(cur.fetchall()) == 26
