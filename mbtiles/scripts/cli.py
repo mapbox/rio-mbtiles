@@ -194,7 +194,8 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
 
         for tile, contents in pool.imap_unordered(process_tile, tiles):
 
-            if tile is None:
+            if contents is None:
+                logger.info("Tile %r is empty and will be skipped", tile)
                 continue
 
             # MBTiles has a different origin than Mercantile/tilebelt.

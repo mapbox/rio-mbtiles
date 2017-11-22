@@ -5,7 +5,7 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.transform import from_bounds as transform_from_bounds
 from rasterio.windows import from_bounds as window_from_bounds
-from rasterio.warp import reproject, transform
+from rasterio.warp import reproject, transform_bounds, transform
 from rasterio._io import virtual_file_to_buffer
 
 
@@ -50,12 +50,20 @@ def process_tile(tile):
     dst_nodata = kwds.pop('dst_nodata', None)
 
     with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
-        (west, east), (south, north) = transform("EPSG:3857", src.crs,
-                                                 (ulx, lrx), (lry, uly))
+
+        west, south, east, north = transform_bounds(
+                             "EPSG:3857", src.crs, ulx, lry, lrx, uly)
         tile_window = window_from_bounds(
                 west, south, east, north, transform=src.transform)
-        if not src.read_masks(1, window=tile_window).astype('bool').any():
-            return None, None
+        tile_window.col_off -= 1
+        tile_window.row_off -= 1
+        tile_window.width += 2
+        tile_window.height += 2
+        tile_window = tile_window.round_offsets().round_shape()
+
+        if not src.read_masks(1, window=tile_window).any():
+            return tile, None
+
         reproject(rasterio.band(src, src.indexes),
                   rasterio.band(tmp, tmp.indexes),
                   src_nodata=src_nodata,
