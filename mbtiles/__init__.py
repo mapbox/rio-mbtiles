@@ -5,7 +5,7 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.transform import from_bounds as transform_from_bounds
 from rasterio.windows import from_bounds as window_from_bounds
-from rasterio.warp import reproject, transform_bounds, transform
+from rasterio.warp import reproject, transform_bounds
 from rasterio._io import virtual_file_to_buffer
 
 
