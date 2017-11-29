@@ -151,10 +151,10 @@ def test_skip_empty(tmpdir, data):
     runner = CliRunner()
     result = runner.invoke(
         main_group,
-        ['mbtiles', inputfile, outputfile, '--zoom-levels', '6..9'])
+        ['mbtiles', inputfile, outputfile, '--zoom-levels', '6..10'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
     # there would be 32 tiles if empty tiles were not skipped
-    assert len(cur.fetchall()) == 26
+    assert len(cur.fetchall()) == 67
