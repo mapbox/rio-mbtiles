@@ -51,6 +51,9 @@ Usage
       -j INTEGER              Number of worker processes (default: 3).
       --src-nodata FLOAT      Manually override source nodata
       --dst-nodata FLOAT      Manually override destination nodata
+      --resampling            Resampling method to use. Options within
+                              rasterio.enums.Resampling are supported.
+                              (default: nearest)
       --version               Show the version and exit.
       --help                  Show this message and exit.
 
