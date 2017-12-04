@@ -94,7 +94,7 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
                                   force_overwrite=force_overwrite)
     inputfile = files[0]
 
-    logger = logging.getLogger('rio-mbtiles')
+    logger = logging.getLogger(__name__)
 
     with ctx.obj['env']:
 
@@ -191,6 +191,10 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             west, south, east, north, range(minzoom, maxzoom + 1))
 
         for tile, contents in pool.imap_unordered(process_tile, tiles):
+
+            if contents is None:
+                logger.info("Tile %r is empty and will be skipped", tile)
+                continue
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1

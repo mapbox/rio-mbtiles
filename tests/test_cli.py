@@ -76,7 +76,7 @@ def test_export_tiles(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    assert len(cur.fetchall()) == 5
 
 
 def test_export_zoom(tmpdir, data):
@@ -90,7 +90,7 @@ def test_export_zoom(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    assert len(cur.fetchall()) == 5
 
 
 def test_export_jobs(tmpdir, data):
@@ -103,7 +103,7 @@ def test_export_jobs(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    assert len(cur.fetchall()) == 5
 
 
 def test_export_src_nodata(tmpdir, data):
@@ -116,7 +116,7 @@ def test_export_src_nodata(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    assert len(cur.fetchall()) == 5
 
 
 def test_export_dump(tmpdir, data):
@@ -128,7 +128,7 @@ def test_export_dump(tmpdir, data):
         main_group,
         ['mbtiles', inputfile, outputfile, '--image-dump', str(dumpdir)])
     assert result.exit_code == 0
-    assert len(os.listdir(str(dumpdir))) == 6
+    assert len(os.listdir(str(dumpdir))) == 5
 
 
 def test_export_bilinear(tmpdir, data):
@@ -142,4 +142,4 @@ def test_export_bilinear(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    assert len(cur.fetchall()) == 5
