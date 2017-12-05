@@ -17,7 +17,7 @@ test_files = [
 
 
 def pytest_cmdline_main(config):
-    # Bail if the test raster data is not present. Test data is not 
+    # Bail if the test raster data is not present. Test data is not
     # distributed with sdists since 0.12.
     if reduce(operator.and_, map(os.path.exists, test_files)):
         print("Test data present.")
@@ -33,3 +33,14 @@ def data():
     for filename in test_files:
         shutil.copy(filename, str(tmpdir))
     return tmpdir
+
+
+@pytest.fixture(scope='function')
+def empty_data(tmpdir):
+    """A temporary directory containing a folder with an empty data file."""
+    filename = test_files[0]
+    out_filename = os.path.join(str(tmpdir), "empty.tif")
+    with rasterio.open(filename, 'r') as src:
+        with rasterio.open(out_filename, 'w', **src.meta) as dst:
+            pass
+    return out_filename
