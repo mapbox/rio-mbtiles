@@ -146,6 +146,9 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
         # Initialize the sqlite db.
         if os.path.exists(output):
             os.unlink(output)
+        # workaround for bug here: https://bugs.python.org/issue27126
+        sqlite3.connect(':memory:').close()
+
         conn = sqlite3.connect(output)
         cur = conn.cursor()
         cur.execute(
