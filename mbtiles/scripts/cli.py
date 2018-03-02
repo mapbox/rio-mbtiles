@@ -49,6 +49,8 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.option('-f', '--format', 'img_format', type=click.Choice(['JPEG', 'PNG']),
               default='JPEG',
               help="Tile image format.")
+@click.option('--tile-size', default=512, show_default=True,
+              type=int, help="Width/height of individual tiles to create.")
 @click.option('--zoom-levels',
               default=None,
               metavar="MIN..MAX",
@@ -73,8 +75,8 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output, force_overwrite, title, description,
-            layer_type, img_format, zoom_levels, image_dump, num_workers,
-            src_nodata, dst_nodata, resampling):
+            layer_type, img_format, tile_size, zoom_levels, image_dump,
+            num_workers, src_nodata, dst_nodata, resampling):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -136,10 +138,11 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             'driver': img_format.upper(),
             'dtype': 'uint8',
             'nodata': 0,
-            'height': 256,
-            'width': 256,
+            'height': tile_size,
+            'width': tile_size,
             'count': 3,
-            'crs': TILES_CRS})
+            'crs': TILES_CRS,
+            'zlevel': 9})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
