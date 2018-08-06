@@ -47,7 +47,7 @@ def test_export_overwrite(tmpdir, data):
     output.write("lolwut")
     outputfile = str(output)
     runner = CliRunner()
-    result = runner.invoke(main_group, ['mbtiles', '--force-overwrite', inputfile, outputfile])
+    result = runner.invoke(main_group, ['mbtiles', '--overwrite', inputfile, outputfile])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
