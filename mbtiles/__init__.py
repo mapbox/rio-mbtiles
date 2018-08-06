@@ -57,9 +57,4 @@ def process_tile(tile):
                   resampling=resampling)
 
     data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
-
-    # Workaround for https://bugs.python.org/issue23349.
-    if sys.version_info[0] == 2 and sys.version_info[2] < 10:
-        data[:] = data[-1:] + data[:-1]
-
     return tile, data
