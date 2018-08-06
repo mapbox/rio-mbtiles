@@ -5,7 +5,8 @@
   issue #39.
 - Rasterio's resampling options are enabled on the command line (#31).
 - Require Python version >= 2.7.10. Mbtiles data will not be properly written
-  with older versions of Python.
+  with older versions of Python. See commit 57fba73 and
+  https://bugs.python.org/issue23349.
 
 1.3.0 (2016-10-05)
 ------------------
