@@ -21,6 +21,8 @@ from mbtiles import __version__ as mbtiles_version
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 RESAMPLING_METHODS = [method.name for method in Resampling]
 
+TILES_CRS = 'EPSG:3857'
+
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     """Raise BadParameter if we don't have a src nodata for a dst"""
@@ -137,13 +139,16 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             'height': 256,
             'width': 256,
             'count': 3,
-            'crs': 'EPSG:3857'})
+            'crs': TILES_CRS})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
         # Initialize the sqlite db.
         if os.path.exists(output):
             os.unlink(output)
+        # workaround for bug here: https://bugs.python.org/issue27126
+        sqlite3.connect(':memory:').close()
+
         conn = sqlite3.connect(output)
         cur = conn.cursor()
         cur.execute(
@@ -191,6 +196,10 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             west, south, east, north, range(minzoom, maxzoom + 1))
 
         for tile, contents in pool.imap_unordered(process_tile, tiles):
+
+            if contents is None:
+                logger.info("Tile %r is empty and will be skipped", tile)
+                continue
 
             # MBTiles has a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1

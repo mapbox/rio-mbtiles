@@ -3,8 +3,9 @@ import sys
 import mercantile
 import rasterio
 from rasterio.enums import Resampling
-from rasterio.transform import from_bounds
-from rasterio.warp import reproject
+from rasterio.transform import from_bounds as transform_from_bounds
+from rasterio.windows import from_bounds as window_from_bounds
+from rasterio.warp import reproject, transform_bounds
 from rasterio._io import virtual_file_to_buffer
 
 
@@ -14,6 +15,8 @@ __version__ = '1.4.0'
 
 base_kwds = None
 src = None
+
+TILES_CRS = 'EPSG:3857'
 
 
 def init_worker(path, profile, resampling_method):
@@ -44,11 +47,28 @@ def process_tile(tile):
         *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
 
     kwds = base_kwds.copy()
-    kwds['transform'] = from_bounds(ulx, lry, lrx, uly, 256, 256)
+    kwds['transform'] = transform_from_bounds(ulx, lry, lrx, uly, 256, 256)
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 
     with rasterio.open('/vsimem/tileimg', 'w', **kwds) as tmp:
+
+        # determine window of source raster corresponding to the tile
+        # image, with small buffer at edges
+        west, south, east, north = transform_bounds(
+                             TILES_CRS, src.crs, ulx, lry, lrx, uly)
+        tile_window = window_from_bounds(
+                west, south, east, north, transform=src.transform)
+        tile_window.col_off -= 1
+        tile_window.row_off -= 1
+        tile_window.width += 2
+        tile_window.height += 2
+        tile_window = tile_window.round_offsets().round_shape()
+
+        # if no data in window, skip processing the tile
+        if not src.read_masks(1, window=tile_window).any():
+            return tile, None
+
         reproject(rasterio.band(src, src.indexes),
                   rasterio.band(tmp, tmp.indexes),
                   src_nodata=src_nodata,

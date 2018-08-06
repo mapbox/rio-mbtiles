@@ -143,3 +143,18 @@ def test_export_bilinear(tmpdir, data):
     cur = conn.cursor()
     cur.execute("select * from tiles")
     assert len(cur.fetchall()) == 6
+
+
+def test_skip_empty(tmpdir, empty_data):
+    """This file has the same shape as RGB.byte.tif, but no data."""
+    inputfile = empty_data
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        ['mbtiles', inputfile, outputfile])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    assert len(cur.fetchall()) == 0
