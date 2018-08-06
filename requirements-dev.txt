@@ -1,11 +1,9 @@
 affine
 cligj
 coveralls>=0.4
-cython==0.21.2
 enum34
 mercantile
 numpy>=1.10
 pytest
-rasterio>=1.0a2
+rasterio~=1.0
 snuggs>=1.2
-setuptools>=0.9.8
