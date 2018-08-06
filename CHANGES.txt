@@ -1,5 +1,16 @@
+1.4.0 (2018-08-06)
+------------------
+
+- Require rasterio~=1.0 and the Rasterio's dataset overwriting option. Resolves
+  issue #39.
+- Rasterio's resampling options are enabled on the command line (#31).
+- Require Python version >= 2.7.10. Mbtiles data will not be properly written
+  with older versions of Python. See commit 57fba73 and
+  https://bugs.python.org/issue23349.
+
 1.3.0 (2016-10-05)
 ------------------
+
 - Add --src-nodata and --dst-nodata options, with the same semantics as in
   rio-warp (#15).
 - Require numpy>=1.10 and rasterio>=1.0a2

@@ -29,11 +29,12 @@ setup(name='rio-mbtiles',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
+      python_requires='>=2.7.10',
       install_requires=[
           'click',
           'mercantile',
           'numpy>=1.10',
-          'rasterio>=1.0a2'
+          'rasterio~=1.0'
       ],
       extras_require={
           'test': ['coveralls', 'pytest', 'pytest-cov'],

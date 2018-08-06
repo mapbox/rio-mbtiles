@@ -11,7 +11,7 @@ from rasterio._io import virtual_file_to_buffer
 
 buffer = bytes if sys.version_info > (3,) else buffer
 
-__version__ = '1.3.0'
+__version__ = '1.4.0'
 
 base_kwds = None
 src = None
@@ -77,9 +77,4 @@ def process_tile(tile):
                   resampling=resampling)
 
     data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
-
-    # Workaround for https://bugs.python.org/issue23349.
-    if sys.version_info[0] == 2 and sys.version_info[2] < 10:
-        data[:] = data[-1:] + data[:-1]
-
     return tile, data
