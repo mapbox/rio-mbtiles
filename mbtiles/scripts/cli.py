@@ -74,7 +74,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               help="Resampling method to use.")
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
-def mbtiles(ctx, files, output, force_overwrite, title, description,
+def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
             num_workers, src_nodata, dst_nodata, resampling):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
