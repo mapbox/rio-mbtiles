@@ -11,7 +11,7 @@ from rasterio._io import virtual_file_to_buffer
 
 buffer = bytes if sys.version_info > (3,) else buffer
 
-__version__ = '1.3.0'
+__version__ = '1.4.0'
 
 base_kwds = None
 src = None
@@ -47,8 +47,8 @@ def process_tile(tile):
         *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
 
     kwds = base_kwds.copy()
-    kwds['transform'] = transform_from_bounds(ulx, lry, lrx, uly, kwds['width'],
-                                              kwds['height'])
+    kwds['transform'] = transform_from_bounds(ulx, lry, lrx, uly,
+                                              kwds['width'], kwds['height'])
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 
@@ -78,9 +78,4 @@ def process_tile(tile):
                   resampling=resampling)
 
     data = bytearray(virtual_file_to_buffer('/vsimem/tileimg'))
-
-    # Workaround for https://bugs.python.org/issue23349.
-    if sys.version_info[0] == 2 and sys.version_info[2] < 10:
-        data[:] = data[-1:] + data[:-1]
-
     return tile, data

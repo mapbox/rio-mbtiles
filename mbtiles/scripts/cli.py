@@ -11,7 +11,7 @@ import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
-from rasterio.rio.options import force_overwrite_opt, output_opt
+from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
 
 from mbtiles import buffer, init_worker, process_tile
@@ -39,7 +39,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     required=True,
     metavar="INPUT [OUTPUT]")
 @output_opt
-@force_overwrite_opt
+@overwrite_opt
 @click.option('--title', help="MBTiles dataset title.")
 @click.option('--description', help="MBTiles dataset description.")
 @click.option('--overlay', 'layer_type', flag_value='overlay', default=True,
@@ -95,7 +95,7 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
     Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
     """
     output, files = resolve_inout(files=files, output=output,
-                                  force_overwrite=force_overwrite)
+                                  overwrite=overwrite)
     inputfile = files[0]
 
     logger = logging.getLogger('rio-mbtiles')
@@ -141,8 +141,7 @@ def mbtiles(ctx, files, output, force_overwrite, title, description,
             'height': tile_size,
             'width': tile_size,
             'count': 3,
-            'crs': TILES_CRS,
-            'zlevel': 9})
+            'crs': TILES_CRS})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
 
