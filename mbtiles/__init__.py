@@ -71,13 +71,12 @@ def process_tile(tile):
                 tile_window.width + 2, tile_window.height + 2)
             tile_window = adjusted_tile_window.round_offsets().round_shape()
 
-        except ValueError:
-            log.info("Tile %r will not be skipped, even if empty. This is harmless.", tile)
-
-        else:
             # if no data in window, skip processing the tile
             if not src.read_masks(1, window=tile_window).any():
                 return tile, None
+
+        except ValueError:
+            log.info("Tile %r will not be skipped, even if empty. This is harmless.", tile)
 
         reproject(rasterio.band(src, src.indexes),
                   rasterio.band(tmp, tmp.indexes),
