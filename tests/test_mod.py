@@ -1,23 +1,25 @@
-import mercantile
+"""Module tests"""
+
+from mercantile import Tile
 import pytest
-import rasterio
 
 import mbtiles
 
 
-@pytest.mark.parametrize("tile_size", (256, 512))
-def test_process_tile(data, tile_size):
-    mbtiles.init_worker(str(data.join('RGB.byte.tif')), {
+@pytest.mark.parametrize("tile",
+                         [Tile(36, 73, 7), Tile(0, 0, 0), Tile(1, 1, 1)])
+def test_process_tile(data, tile):
+    mbtiles.init_worker(
+        str(data.join('RGB.byte.tif')), {
             'driver': 'PNG',
             'dtype': 'uint8',
             'nodata': 0,
-            'height': tile_size,
-            'width': tile_size,
+            'height': 256,
+            'width': 256,
             'count': 3,
             'crs': 'EPSG:3857'},
-            'nearest')
-    tile, contents = mbtiles.process_tile(mercantile.Tile(36, 73, 7))
-    assert tile.x == 36
-    assert tile.y == 73
-    assert tile.z == 7
-    assert contents.shape == (tile_size, tile_size)
+        'nearest')
+    t, contents = mbtiles.process_tile(tile)
+    assert t.x == tile.x
+    assert t.y == tile.y
+    assert t.z == tile.z

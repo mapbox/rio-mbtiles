@@ -1,3 +1,14 @@
+Changes
+=======
+
+1.4.1 (2018-10-17)
+------------------
+
+- Write out empty tiles at the lowest zoom levels when the reverse transform
+  fails during our attempt to skip empty tiles entirely (#41).
+- Avoid modifying rasterio windows in place as they have been made immutable
+  in new versions of Rasterio (#43).
+
 1.4.0 (2018-08-06)
 ------------------
 
