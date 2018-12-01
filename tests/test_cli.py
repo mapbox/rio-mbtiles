@@ -145,7 +145,7 @@ def test_export_tile_size(tmpdir, data, tile_size):
          '--tile-size', tile_size])
     dump_files = os.listdir(str(dumpdir))
     assert result.exit_code == 0
-    with rasterio.open(os.path.join(dumpdir, dump_files[0]), "r") as src:
+    with rasterio.open(os.path.join(str(dumpdir), dump_files[0]), "r") as src:
         assert src.shape == (tile_size, tile_size)
 
 
