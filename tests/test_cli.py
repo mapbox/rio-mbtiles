@@ -47,7 +47,8 @@ def test_export_overwrite(tmpdir, data):
     output.write("lolwut")
     outputfile = str(output)
     runner = CliRunner()
-    result = runner.invoke(main_group, ['mbtiles', '--overwrite', inputfile, outputfile])
+    result = runner.invoke(main_group, ['mbtiles', '--overwrite', inputfile,
+                                        outputfile])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
@@ -111,7 +112,8 @@ def test_export_src_nodata(tmpdir, data):
     outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(
-        main_group, ['mbtiles', inputfile, outputfile, '--src-nodata', '0', '--dst-nodata', '0'])
+        main_group, ['mbtiles', inputfile, outputfile, '--src-nodata', '0',
+                     '--dst-nodata', '0'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
@@ -129,6 +131,22 @@ def test_export_dump(tmpdir, data):
         ['mbtiles', inputfile, outputfile, '--image-dump', str(dumpdir)])
     assert result.exit_code == 0
     assert len(os.listdir(str(dumpdir))) == 6
+
+
+@pytest.mark.parametrize("tile_size", [256, 512])
+def test_export_tile_size(tmpdir, data, tile_size):
+    inputfile = str(data.join('RGB.byte.tif'))
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    dumpdir = pytest.ensuretemp('dump')
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        ['mbtiles', inputfile, outputfile, '--image-dump', str(dumpdir),
+         '--tile-size', tile_size])
+    dump_files = os.listdir(str(dumpdir))
+    assert result.exit_code == 0
+    with rasterio.open(os.path.join(dumpdir, dump_files[0]), "r") as src:
+        assert src.shape == (tile_size, tile_size)
 
 
 def test_export_bilinear(tmpdir, data):
