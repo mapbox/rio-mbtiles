@@ -133,7 +133,7 @@ def test_export_dump(tmpdir, data):
     assert len(os.listdir(str(dumpdir))) == 6
 
 
-@pytest.mark.parametrize("tile_size", [256, 512])
+@pytest.mark.parametrize('tile_size', [256, 512])
 def test_export_tile_size(tmpdir, data, tile_size):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(tmpdir.join('export.mbtiles'))

@@ -6,7 +6,7 @@ import pytest
 import mbtiles
 
 
-@pytest.mark.parametrize("tile",
+@pytest.mark.parametrize('tile',
                          [Tile(36, 73, 7), Tile(0, 0, 0), Tile(1, 1, 1)])
 def test_process_tile(data, tile):
     mbtiles.init_worker(
