@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 def init_worker(path, profile, resampling_method):
-    global base_kwds, src, resampling, tilesize
+    global base_kwds, src, resampling
     resampling = Resampling[resampling_method]
     base_kwds = profile.copy()
     src = rasterio.open(path)
