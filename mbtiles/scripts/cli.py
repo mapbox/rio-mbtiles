@@ -49,7 +49,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.option('-f', '--format', 'img_format', type=click.Choice(['JPEG', 'PNG']),
               default='JPEG',
               help="Tile image format.")
-@click.option('--tile-size', default=512, show_default=True, type=int,
+@click.option('--tile-size', default=256, show_default=True, type=int,
               help="Width and height of individual square tiles to create.")
 @click.option('--zoom-levels',
               default=None,
