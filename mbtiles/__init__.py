@@ -55,7 +55,8 @@ def process_tile(tile):
         *mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
 
     kwds = base_kwds.copy()
-    kwds['transform'] = transform_from_bounds(ulx, lry, lrx, uly, 256, 256)
+    kwds['transform'] = transform_from_bounds(ulx, lry, lrx, uly,
+                                              kwds['width'], kwds['height'])
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
 

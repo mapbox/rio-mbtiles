@@ -2,12 +2,12 @@
 
 from mercantile import Tile
 import pytest
-import rasterio
 
 import mbtiles
 
 
-@pytest.mark.parametrize('tile', [Tile(36, 73, 7), Tile(0, 0, 0), Tile(1, 1, 1)])
+@pytest.mark.parametrize('tile',
+                         [Tile(36, 73, 7), Tile(0, 0, 0), Tile(1, 1, 1)])
 def test_process_tile(data, tile):
     mbtiles.init_worker(
         str(data.join('RGB.byte.tif')), {
