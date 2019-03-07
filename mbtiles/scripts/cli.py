@@ -14,7 +14,7 @@ from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
 
-from mbtiles import buffer, init_worker, process_tile
+from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
 
 
@@ -73,15 +73,20 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               default='nearest', show_default=True,
               help="Resampling method to use.")
 @click.version_option(version=mbtiles_version, message='%(version)s')
+@click.option('--rgba', default=False, is_flag=True, help="Select RGBA output. For PNG only.")
 @click.pass_context
 def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
-            num_workers, src_nodata, dst_nodata, resampling):
+            num_workers, src_nodata, dst_nodata, resampling, rgba):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
     have at least three bands, which will be become the red, blue, and
     green bands of the output image tiles.
+
+    An optional fourth alpha band may be copied to the output tiles by
+    using the --rgba option in combination with the PNG format. This
+    option requires that the input dataset has at least 4 bands.
 
     If no zoom levels are specified, the defaults are the zoom levels
     nearest to the one at which one tile may contain the entire source
@@ -98,7 +103,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                                   overwrite=overwrite)
     inputfile = files[0]
 
-    logger = logging.getLogger('rio-mbtiles')
+    log = logging.getLogger(__name__)
 
     with ctx.obj['env']:
 
@@ -131,7 +136,15 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             minzoom = min(zw, zh)
             maxzoom = max(zw, zh)
 
-        logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
+        log.debug("Zoom range: %d..%d", minzoom, maxzoom)
+
+        if rgba:
+            if img_format == 'JPEG':
+                raise click.BadParameter("RGBA output is not possible with JPEG format.")
+            else:
+                count = 4
+        else:
+            count = 3
 
         # Parameters for creation of tile images.
         base_kwds.update({
@@ -140,7 +153,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             'nodata': 0,
             'height': tile_size,
             'width': tile_size,
-            'count': 3,
+            'count': count,
             'crs': TILES_CRS})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
@@ -148,6 +161,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         # Initialize the sqlite db.
         if os.path.exists(output):
             os.unlink(output)
+
         # workaround for bug here: https://bugs.python.org/issue27126
         sqlite3.connect(':memory:').close()
 
@@ -200,10 +214,10 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         for tile, contents in pool.imap_unordered(process_tile, tiles):
 
             if contents is None:
-                logger.info("Tile %r is empty and will be skipped", tile)
+                log.info("Tile %r is empty and will be skipped", tile)
                 continue
 
-            # MBTiles has a different origin than Mercantile/tilebelt.
+            # MBTiles have a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
 
             # Optional image dump.
@@ -219,9 +233,8 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                 "INSERT INTO tiles "
                 "(zoom_level, tile_column, tile_row, tile_data) "
                 "VALUES (?, ?, ?, ?);",
-                (tile.z, tile.x, tiley, buffer(contents)))
+                (tile.z, tile.x, tiley, sqlite3.Binary(contents)))
 
             conn.commit()
 
         conn.close()
-        # Done!

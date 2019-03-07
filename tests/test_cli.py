@@ -1,18 +1,14 @@
-import logging
 import os
 import sqlite3
-import sys
+import warnings
 
-import click
 from click.testing import CliRunner
+from rasterio.rio.main import main_group
+import click
 import pytest
 import rasterio
-from rasterio.rio.main import main_group
 
 from mbtiles.scripts.cli import validate_nodata
-
-
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 
 def test_cli_help():
@@ -28,8 +24,9 @@ def test_nodata_validation():
         validate_nodata(0, None, None)
 
 
-def test_export_metadata(tmpdir, data):
-    inputfile = str(data.join('RGB.byte.tif'))
+@pytest.mark.parametrize('filename', ['RGB.byte.tif', 'RGBA.byte.tif'])
+def test_export_metadata(tmpdir, data, filename):
+    inputfile = str(data.join(filename))
     outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(main_group, ['mbtiles', inputfile, outputfile])
@@ -37,7 +34,7 @@ def test_export_metadata(tmpdir, data):
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from metadata where name == 'name'")
-    assert cur.fetchone()[1] == 'RGB.byte.tif'
+    assert cur.fetchone()[1] == filename
 
 
 def test_export_overwrite(tmpdir, data):
@@ -145,8 +142,10 @@ def test_export_tile_size(tmpdir, data, tile_size):
          '--tile-size', tile_size])
     dump_files = os.listdir(str(dumpdir))
     assert result.exit_code == 0
+    warnings.simplefilter('ignore')
     with rasterio.open(os.path.join(str(dumpdir), dump_files[0]), "r") as src:
         assert src.shape == (tile_size, tile_size)
+    warnings.resetwarnings()
 
 
 def test_export_bilinear(tmpdir, data):
@@ -176,3 +175,27 @@ def test_skip_empty(tmpdir, empty_data):
     cur = conn.cursor()
     cur.execute("select * from tiles")
     assert len(cur.fetchall()) == 0
+
+
+def test_invalid_format_rgba(tmpdir, empty_data):
+    """--format JPEG --rgba is not allowed"""
+    inputfile = empty_data
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        ['mbtiles', '--format', 'JPEG', '--rgba', inputfile, outputfile])
+    assert result.exit_code == 2
+
+
+@pytest.mark.parametrize('filename', ['RGBA.byte.tif'])
+def test_rgba_png(tmpdir, data, filename):
+    inputfile = str(data.join(filename))
+    outputfile = str(tmpdir.join('export.mbtiles'))
+    runner = CliRunner()
+    result = runner.invoke(main_group, ['mbtiles', '--rgba', '--format', 'PNG', inputfile, outputfile])
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from metadata where name == 'name'")
+    assert cur.fetchone()[1] == filename

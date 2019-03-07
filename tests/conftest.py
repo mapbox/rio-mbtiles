@@ -13,7 +13,7 @@ if sys.version_info > (3,):
     reduce = functools.reduce
 
 test_files = [
-    os.path.join(os.path.dirname(__file__), p) for p in ['data/RGB.byte.tif']]
+    os.path.join(os.path.dirname(__file__), p) for p in ['data/RGB.byte.tif', 'data/RGBA.byte.tif']]
 
 
 def pytest_cmdline_main(config):
