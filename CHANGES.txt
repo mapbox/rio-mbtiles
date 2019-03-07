@@ -4,7 +4,9 @@ Changes
 1.4.2 (2019-03-07)
 ------------------
 
-- Add support for RGBA input and output (PNG only) (#26).
+- Missing support for RGBA input and output (PNG only) has been added (#26).
+  Using the options --format PNG --rgba with rio-mbtiles will create RGBA PNG
+  tiles from the first 4 bands of the input dataset.
 
 1.4.1 (2018-10-17)
 ------------------
