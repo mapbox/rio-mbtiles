@@ -84,6 +84,10 @@ def mbtiles(ctx, files, output, overwrite, title, description,
     have at least three bands, which will be become the red, blue, and
     green bands of the output image tiles.
 
+    An optional fourth alpha band may be copied to the output tiles by
+    using the --rgba option in combination with the PNG format. This
+    option requires that the input dataset has at least 4 bands.
+
     If no zoom levels are specified, the defaults are the zoom levels
     nearest to the one at which one tile may contain the entire source
     dataset.
@@ -99,7 +103,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                                   overwrite=overwrite)
     inputfile = files[0]
 
-    logger = logging.getLogger('rio-mbtiles')
+    log = logging.getLogger(__name__)
 
     with ctx.obj['env']:
 
@@ -132,11 +136,11 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             minzoom = min(zw, zh)
             maxzoom = max(zw, zh)
 
-        logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
+        log.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
         if rgba:
             if img_format == 'JPEG':
-                raise click.BadParameter("RGBA output is not possible with JPEG format")
+                raise click.BadParameter("RGBA output is not possible with JPEG format.")
             else:
                 count = 4
         else:
@@ -157,6 +161,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         # Initialize the sqlite db.
         if os.path.exists(output):
             os.unlink(output)
+
         # workaround for bug here: https://bugs.python.org/issue27126
         sqlite3.connect(':memory:').close()
 
@@ -209,10 +214,10 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         for tile, contents in pool.imap_unordered(process_tile, tiles):
 
             if contents is None:
-                logger.info("Tile %r is empty and will be skipped", tile)
+                log.info("Tile %r is empty and will be skipped", tile)
                 continue
 
-            # MBTiles has a different origin than Mercantile/tilebelt.
+            # MBTiles have a different origin than Mercantile/tilebelt.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
 
             # Optional image dump.
@@ -233,4 +238,3 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             conn.commit()
 
         conn.close()
-        # Done!
