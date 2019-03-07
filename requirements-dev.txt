@@ -5,7 +5,7 @@ enum34==1.1.6
 mercantile==1.0.4
 numpy==1.15.2
 pytest~=4.0
-pytest-cov==2.5.1
+pytest-cov==2.6.1
 coverage==4.5.1
 rasterio~=1.0
 snuggs==1.4.2
