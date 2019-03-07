@@ -7,6 +7,8 @@ Changes
 - Missing support for RGBA input and output (PNG only) has been added (#26).
   Using the options --format PNG --rgba with rio-mbtiles will create RGBA PNG
   tiles from the first 4 bands of the input dataset.
+- Output tile size has been made an command option. The default remains
+  256 x 256 (#44).
 
 1.4.1 (2018-10-17)
 ------------------
