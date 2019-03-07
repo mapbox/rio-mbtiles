@@ -10,8 +10,9 @@ import mbtiles
                          [Tile(36, 73, 7), Tile(0, 0, 0), Tile(1, 1, 1)])
 @pytest.mark.parametrize('filename', ['RGB.byte.tif', 'RGBA.byte.tif'])
 def test_process_tile(data, filename, tile):
+    sourcepath = str(data.join(filename))
     mbtiles.init_worker(
-        str(data.join(filename)), {
+        sourcepath, {
             'driver': 'PNG',
             'dtype': 'uint8',
             'nodata': 0,

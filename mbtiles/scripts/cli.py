@@ -14,7 +14,7 @@ from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
 
-from mbtiles import buffer, init_worker, process_tile
+from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
 
 
@@ -73,10 +73,11 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               default='nearest', show_default=True,
               help="Resampling method to use.")
 @click.version_option(version=mbtiles_version, message='%(version)s')
+@click.option('--rgba', default=False, is_flag=True, help="Select RGBA output. For PNG only.")
 @click.pass_context
 def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
-            num_workers, src_nodata, dst_nodata, resampling):
+            num_workers, src_nodata, dst_nodata, resampling, rgba):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -133,6 +134,14 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
         logger.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
+        if rgba:
+            if img_format == 'JPEG':
+                raise click.BadParameter("RGBA output is not possible with JPEG format")
+            else:
+                count = 4
+        else:
+            count = 3
+
         # Parameters for creation of tile images.
         base_kwds.update({
             'driver': img_format.upper(),
@@ -140,7 +149,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             'nodata': 0,
             'height': tile_size,
             'width': tile_size,
-            'count': 3,
+            'count': count,
             'crs': TILES_CRS})
 
         img_ext = 'jpg' if img_format.lower() == 'jpeg' else 'png'
@@ -219,7 +228,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                 "INSERT INTO tiles "
                 "(zoom_level, tile_column, tile_row, tile_data) "
                 "VALUES (?, ?, ?, ?);",
-                (tile.z, tile.x, tiley, buffer(contents)))
+                (tile.z, tile.x, tiley, contents))
 
             conn.commit()
 
