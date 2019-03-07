@@ -233,7 +233,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                 "INSERT INTO tiles "
                 "(zoom_level, tile_column, tile_row, tile_data) "
                 "VALUES (?, ?, ?, ?);",
-                (tile.z, tile.x, tiley, contents))
+                (tile.z, tile.x, tiley, sqlite3.Binary(contents)))
 
             conn.commit()
 
