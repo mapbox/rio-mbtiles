@@ -57,6 +57,7 @@ def process_tile(tile):
                                               kwds['width'], kwds['height'])
     src_nodata = kwds.pop('src_nodata', None)
     dst_nodata = kwds.pop('dst_nodata', None)
+    colormap = kwds.pop('colormap', None)
 
     warnings.simplefilter('ignore')
 
@@ -82,6 +83,9 @@ def process_tile(tile):
 
             except ValueError:
                 log.info("Tile %r will not be skipped, even if empty. This is harmless.", tile)
+
+            if colormap is not None:
+                tmp.write_colormap(1, colormap)
 
             reproject(rasterio.band(src, tmp.indexes),
                       rasterio.band(tmp, tmp.indexes),

@@ -5,6 +5,7 @@ import math
 from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
+import json
 
 import click
 import mercantile
@@ -75,11 +76,14 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.option('--bands', type=int,
               default=None, show_default=True,
               help="Number of bands in the output dataset (4 for RGBA)")
+@click.option('--colormap',
+              default=None, show_default=True,
+              help='''Colormap for a 1-band PNG file as a JSON array (e.g. {"0":[1,2,3,4],"23":[9,4,3,2]} for RGBA values for pixel values 0 and 23)''')
 @click.version_option(version=mbtiles_version, message='%(version)s')
 @click.pass_context
 def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
-            num_workers, src_nodata, dst_nodata, resampling, bands):
+            num_workers, src_nodata, dst_nodata, resampling, bands, colormap):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -150,6 +154,9 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
         if count != 3 and img_format == 'JPEG':
             raise click.BadParameter("RGBA output is not possible with JPEG format.")
+
+        if colormap is not None:
+            base_kwds['colormap'] = {int(k): v for k,v in json.loads(colormap).items()}
 
         # Parameters for creation of tile images.
         base_kwds.update({
