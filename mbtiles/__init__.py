@@ -77,6 +77,8 @@ def process_tile(tile):
                 # if no data in window, skip processing the tile
                 if not src.read_masks(1, window=tile_window).any():
                     return tile, None
+                if src_nodata is not None and (src.read(1, window=tile_window) == src_nodata).all():
+                    return tile, None
 
             except ValueError:
                 log.info("Tile %r will not be skipped, even if empty. This is harmless.", tile)
