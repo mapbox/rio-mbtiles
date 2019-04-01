@@ -72,20 +72,22 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.option('--resampling', type=click.Choice(RESAMPLING_METHODS),
               default='nearest', show_default=True,
               help="Resampling method to use.")
+@click.option('--bands', type=int,
+              default=None, show_default=True,
+              help="Number of bands in the output dataset (4 for RGBA)")
 @click.version_option(version=mbtiles_version, message='%(version)s')
-@click.option('--rgba', default=False, is_flag=True, help="Select RGBA output. For PNG only.")
 @click.pass_context
 def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
-            num_workers, src_nodata, dst_nodata, resampling, rgba):
+            num_workers, src_nodata, dst_nodata, resampling, bands):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
-    have at least three bands, which will be become the red, blue, and
-    green bands of the output image tiles.
+    have between one and four bands. A 3-band input will be become the
+    red, blue, and green bands of the output image tiles.
 
     An optional fourth alpha band may be copied to the output tiles by
-    using the --rgba option in combination with the PNG format. This
+    using the --bands=4 option in combination with the PNG format. This
     option requires that the input dataset has at least 4 bands.
 
     If no zoom levels are specified, the defaults are the zoom levels
@@ -138,13 +140,16 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
         log.debug("Zoom range: %d..%d", minzoom, maxzoom)
 
-        if rgba:
-            if img_format == 'JPEG':
-                raise click.BadParameter("RGBA output is not possible with JPEG format.")
+        if bands is not None:
+            if 1 <= bands <= 4:
+                count = bands
             else:
-                count = 4
+                raise click.BadParameter("Band count must be between 1 and 4")
         else:
             count = 3
+
+        if count != 3 and img_format == 'JPEG':
+            raise click.BadParameter("RGBA output is not possible with JPEG format.")
 
         # Parameters for creation of tile images.
         base_kwds.update({
