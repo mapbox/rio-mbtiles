@@ -2,12 +2,13 @@
 
 import logging
 import math
-from multiprocessing import cpu_count, Pool
+from multiprocessing import Pool
 import os
 import sqlite3
 
 import click
 import mercantile
+import psutil
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
@@ -18,7 +19,10 @@ from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
 
 
-DEFAULT_NUM_WORKERS = cpu_count() - 1
+#: physical cores (at least 1, or N cores - 1)
+cpu_cores = max(1, psutil.cpu_count(logical=False) - 1)
+
+DEFAULT_NUM_WORKERS = cpu_cores
 RESAMPLING_METHODS = [method.name for method in Resampling]
 
 TILES_CRS = 'EPSG:3857'

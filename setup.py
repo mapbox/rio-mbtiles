@@ -34,6 +34,7 @@ setup(name='rio-mbtiles',
           'click',
           'mercantile',
           'numpy>=1.10',
+          'psutil',
           'rasterio~=1.0'
       ],
       extras_require={
