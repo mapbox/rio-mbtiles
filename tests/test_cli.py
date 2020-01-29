@@ -96,7 +96,7 @@ def test_export_jobs(tmpdir, data):
     outputfile = str(tmpdir.join('export.mbtiles'))
     runner = CliRunner()
     result = runner.invoke(
-        main_group, ['mbtiles', inputfile, outputfile, '-j', '4'])
+        main_group, ['mbtiles', inputfile, outputfile])  #, '-j', '4'])
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()

@@ -2,7 +2,6 @@
 
 import logging
 import math
-from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
 
@@ -11,14 +10,14 @@ import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
-from rasterio.rio.options import overwrite_opt, output_opt
+from rasterio.rio.options import output_opt
+from rasterio.rio.options import overwrite_opt
 from rasterio.warp import transform
 
-from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
+from mbtiles import init_worker
+from mbtiles import process_tile
 
-
-DEFAULT_NUM_WORKERS = cpu_count() - 1
 RESAMPLING_METHODS = [method.name for method in Resampling]
 
 TILES_CRS = 'EPSG:3857'
@@ -62,9 +61,6 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
               metavar="PATH",
               help="A directory into which image tiles will be optionally "
                    "dumped.")
-@click.option('-j', 'num_workers', type=int, default=DEFAULT_NUM_WORKERS,
-              help="Number of worker processes (default: %d)." % (
-                  DEFAULT_NUM_WORKERS))
 @click.option('--src-nodata', default=None, show_default=True,
               type=float, help="Manually override source nodata")
 @click.option('--dst-nodata', default=None, show_default=True,
@@ -77,7 +73,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.pass_context
 def mbtiles(ctx, files, output, overwrite, title, description,
             layer_type, img_format, tile_size, zoom_levels, image_dump,
-            num_workers, src_nodata, dst_nodata, resampling, rgba):
+            src_nodata, dst_nodata, resampling, rgba):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
@@ -196,10 +192,6 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
         conn.commit()
 
-        # Create a pool of workers to process tile tasks.
-        pool = Pool(num_workers, init_worker,
-                    (inputfile, base_kwds, resampling), 100)
-
         # Constrain bounds.
         EPS = 1.0e-10
         west = max(-180 + EPS, west)
@@ -211,19 +203,22 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         tiles = mercantile.tiles(
             west, south, east, north, range(minzoom, maxzoom + 1))
 
-        for tile, contents in pool.imap_unordered(process_tile, tiles):
+        init_worker(inputfile, base_kwds, resampling)
+
+        for tile in tiles:
+            t, contents = process_tile(tile)
 
             if contents is None:
-                log.info("Tile %r is empty and will be skipped", tile)
+                log.info("Tile %r is empty and will be skipped", t)
                 continue
 
             # MBTiles have a different origin than Mercantile/tilebelt.
-            tiley = int(math.pow(2, tile.z)) - tile.y - 1
+            tiley = int(math.pow(2, t.z)) - t.y - 1
 
             # Optional image dump.
             if image_dump:
                 img_name = '%d-%d-%d.%s' % (
-                    tile.x, tiley, tile.z, img_ext)
+                    t.x, tiley, t.z, img_ext)
                 img_path = os.path.join(image_dump, img_name)
                 with open(img_path, 'wb') as img:
                     img.write(contents)
@@ -233,7 +228,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
                 "INSERT INTO tiles "
                 "(zoom_level, tile_column, tile_row, tile_data) "
                 "VALUES (?, ?, ?, ?);",
-                (tile.z, tile.x, tiley, sqlite3.Binary(contents)))
+                (t.z, t.x, tiley, sqlite3.Binary(contents)))
 
             conn.commit()
 
