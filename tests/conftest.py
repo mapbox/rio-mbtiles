@@ -27,12 +27,12 @@ def pytest_cmdline_main(config):
 
 
 @pytest.fixture(scope='function')
-def data():
+def data(tmpdir):
     """A temporary directory containing a copy of the files in data."""
-    tmpdir = py.test.ensuretemp('tests/data')
+    datadir = tmpdir.ensure('tests/data', dir=True)
     for filename in test_files:
-        shutil.copy(filename, str(tmpdir))
-    return tmpdir
+        shutil.copy(filename, str(datadir))
+    return datadir
 
 
 @pytest.fixture(scope='function')

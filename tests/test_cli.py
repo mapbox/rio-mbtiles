@@ -121,7 +121,7 @@ def test_export_src_nodata(tmpdir, data):
 def test_export_dump(tmpdir, data):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(tmpdir.join('export.mbtiles'))
-    dumpdir = pytest.ensuretemp('dump')
+    dumpdir = tmpdir.ensure('dump', dir=True)
     runner = CliRunner()
     result = runner.invoke(
         main_group,
@@ -134,7 +134,7 @@ def test_export_dump(tmpdir, data):
 def test_export_tile_size(tmpdir, data, tile_size):
     inputfile = str(data.join('RGB.byte.tif'))
     outputfile = str(tmpdir.join('export.mbtiles'))
-    dumpdir = pytest.ensuretemp('dump')
+    dumpdir = tmpdir.ensure('dump', dir=True)
     runner = CliRunner()
     result = runner.invoke(
         main_group,

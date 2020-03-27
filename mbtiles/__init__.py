@@ -60,6 +60,8 @@ def process_tile(tile):
 
     warnings.simplefilter('ignore')
 
+    log.info("Reprojecting tile: tile=%r", tile)
+
     with MemoryFile() as memfile:
 
         with memfile.open(**kwds) as tmp:
@@ -85,7 +87,7 @@ def process_tile(tile):
                       rasterio.band(tmp, tmp.indexes),
                       src_nodata=src_nodata,
                       dst_nodata=dst_nodata,
-                      num_threads=1,
+                      num_threads=2,
                       resampling=resampling)
 
         return tile, memfile.read()
