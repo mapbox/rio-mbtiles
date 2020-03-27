@@ -1,7 +1,7 @@
 # Mbtiles command.
 
 import concurrent.futures
-from itertools import zip_longest
+from itertools import islice
 import logging
 import math
 import os
@@ -21,16 +21,10 @@ from mbtiles import __version__ as mbtiles_version
 
 DEFAULT_NUM_WORKERS = None
 RESAMPLING_METHODS = [method.name for method in Resampling]
-
+BATCH_SIZE = 100
 TILES_CRS = "EPSG:3857"
 
 log = logging.getLogger(__name__)
-
-
-def grouper(iterable, n, fillvalue=None):
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
 
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
@@ -286,9 +280,7 @@ def mbtiles(
                 west, south, east, north, range(minzoom, maxzoom + 1)
             )
 
-            tilegroups = grouper(tiles, 200)
-
-            group = next(tilegroups)
+            group = islice(tiles, BATCH_SIZE)
 
             futures = {
                 executor.submit(process_tile, tile)
@@ -330,13 +322,8 @@ def mbtiles(
 
                 conn.commit()
 
-                try:
-                    group = next(tilegroups)
-                except StopIteration:
-                    pass
-                else:
-                    for tile in group:
-                        if tile is not None:
-                            futures.add(executor.submit(process_tile, tile))
+                group = islice(tiles, BATCH_SIZE)
+                for tile in group:
+                    futures.add(executor.submit(process_tile, tile))
 
         conn.close()
