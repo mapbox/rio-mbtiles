@@ -1,6 +1,5 @@
-sudo: false
 language: python
-dist: trusty
+dist: xenial
 env:
   global:
     - PIP_WHEEL_DIR=$HOME/.cache/pip
