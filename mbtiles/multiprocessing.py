@@ -1,8 +1,8 @@
 # multiprocessing Pool implementation
 
-from itertools import zip_longest
 from multiprocessing import Pool
 
+from mbtiles.compat import zip_longest
 from mbtiles.worker import init_worker, process_tile
 
 BATCH_SIZE = 100
