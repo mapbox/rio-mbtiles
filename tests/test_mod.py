@@ -3,7 +3,7 @@
 from mercantile import Tile
 import pytest
 
-import mbtiles
+import mbtiles.worker
 
 
 @pytest.mark.parametrize('tile',
@@ -11,7 +11,7 @@ import mbtiles
 @pytest.mark.parametrize('filename', ['RGB.byte.tif', 'RGBA.byte.tif'])
 def test_process_tile(data, filename, tile):
     sourcepath = str(data.join(filename))
-    mbtiles.init_worker(
+    mbtiles.worker.init_worker(
         sourcepath, {
             'driver': 'PNG',
             'dtype': 'uint8',
@@ -21,7 +21,7 @@ def test_process_tile(data, filename, tile):
             'count': 3,
             'crs': 'EPSG:3857'},
         'nearest')
-    t, contents = mbtiles.process_tile(tile)
+    t, contents = mbtiles.worker.process_tile(tile)
     assert t.x == tile.x
     assert t.y == tile.y
     assert t.z == tile.z

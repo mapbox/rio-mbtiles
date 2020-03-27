@@ -1,7 +1,5 @@
 # Mbtiles command.
 
-import concurrent.futures
-from itertools import islice
 import logging
 import math
 import os
@@ -15,7 +13,6 @@ from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
 
-from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
 
 
@@ -25,6 +22,33 @@ BATCH_SIZE = 100
 TILES_CRS = "EPSG:3857"
 
 log = logging.getLogger(__name__)
+
+
+def insert_results(cursor, tile, contents, img_ext=None, image_dump=None):
+    "Write worker results to sqlite3" ""
+    if contents is None:
+        log.info("Tile %r is empty and will be skipped", tile)
+        return
+
+    # MBTiles have a different origin than Mercantile/tilebelt.
+    tiley = int(math.pow(2, tile.z)) - tile.y - 1
+
+    # Optional image dump.
+    if image_dump:
+        img_name = "{}-{}-{}.{}".format(tile.x, tiley, tile.z, img_ext)
+        img_path = os.path.join(image_dump, img_name)
+        with open(img_path, "wb") as img:
+            img.write(contents)
+
+    # Insert tile into db.
+    log.info("Inserting tile: tile=%r", tile)
+
+    cursor.execute(
+        "INSERT INTO tiles "
+        "(zoom_level, tile_column, tile_row, tile_data) "
+        "VALUES (?, ?, ?, ?);",
+        (tile.z, tile.x, tiley, sqlite3.Binary(contents)),
+    )
 
 
 def validate_nodata(dst_nodata, src_nodata, meta_nodata):
@@ -118,6 +142,13 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
 @click.option(
     "--rgba", default=False, is_flag=True, help="Select RGBA output. For PNG only."
 )
+@click.option(
+    "--implementation",
+    "implementation",
+    type=click.Choice(["cf", "mp"]),
+    default="mp",
+    help="Concurrency implementation. Use concurrent.futures (cf) or multiprocessing (mp).",
+)
 @click.pass_context
 def mbtiles(
     ctx,
@@ -136,6 +167,7 @@ def mbtiles(
     dst_nodata,
     resampling,
     rgba,
+    implementation,
 ):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
@@ -157,6 +189,7 @@ def mbtiles(
     This command is suited for small to medium (~1 GB) sized sources.
 
     Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
+
     """
     output, files = resolve_inout(files=files, output=output, overwrite=overwrite)
     inputfile = files[0]
@@ -262,68 +295,32 @@ def mbtiles(
 
         conn.commit()
 
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=num_workers,
-            initializer=init_worker,
-            initargs=(inputfile, base_kwds, resampling),
-        ) as executor:
+        # Constrain bounds.
+        EPS = 1.0e-10
+        west = max(-180 + EPS, west)
+        south = max(-85.051129, south)
+        east = min(180 - EPS, east)
+        north = min(85.051129, north)
 
-            # Constrain bounds.
-            EPS = 1.0e-10
-            west = max(-180 + EPS, west)
-            south = max(-85.051129, south)
-            east = min(180 - EPS, east)
-            north = min(85.051129, north)
+        # Initialize iterator over output tiles.
+        tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
 
-            # Initialize iterator over output tiles.
-            tiles = mercantile.tiles(
-                west, south, east, north, range(minzoom, maxzoom + 1)
-            )
+        if implementation == "cf":
+            from mbtiles.futures import process_tiles
+        else:
+            from mbtiles.multiprocessing import process_tiles
 
-            group = islice(tiles, BATCH_SIZE)
+        process_tiles(
+            conn,
+            tiles,
+            insert_results,
+            num_workers=num_workers,
+            inputfile=inputfile,
+            base_kwds=base_kwds,
+            resampling=resampling,
+            img_ext=img_ext,
+            image_dump=image_dump,
+        )
 
-            futures = {
-                executor.submit(process_tile, tile)
-                for tile in group
-                if tile is not None
-            }
-
-            while futures:
-                done, futures = concurrent.futures.wait(
-                    futures, return_when=concurrent.futures.FIRST_COMPLETED
-                )
-
-                for future in done:
-
-                    tile, contents = future.result()
-                    if contents is None:
-                        log.info("Tile %r is empty and will be skipped", tile)
-                        continue
-
-                    # MBTiles have a different origin than Mercantile/tilebelt.
-                    tiley = int(math.pow(2, tile.z)) - tile.y - 1
-
-                    # Optional image dump.
-                    if image_dump:
-                        img_name = "%d-%d-%d.%s" % (tile.x, tiley, tile.z, img_ext)
-                        img_path = os.path.join(image_dump, img_name)
-                        with open(img_path, "wb") as img:
-                            img.write(contents)
-
-                    # Insert tile into db.
-                    log.info("Inserting tile: tile=%r", tile)
-
-                    cur.execute(
-                        "INSERT INTO tiles "
-                        "(zoom_level, tile_column, tile_row, tile_data) "
-                        "VALUES (?, ?, ?, ?);",
-                        (tile.z, tile.x, tiley, sqlite3.Binary(contents)),
-                    )
-
-                conn.commit()
-
-                group = islice(tiles, BATCH_SIZE)
-                for tile in group:
-                    futures.add(executor.submit(process_tile, tile))
-
+        conn.commit()
         conn.close()

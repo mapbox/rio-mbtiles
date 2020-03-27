@@ -8,6 +8,8 @@ env:
 python:
   - "2.7.15"
   - "3.6"
+  - "3.7"
+  - "3.8"
 cache:
   directories:
     - $HOME/.cache/pip/
