@@ -306,9 +306,9 @@ def mbtiles(
         tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
 
         if implementation == "cf":
-            from mbtiles.futures import process_tiles
+            from mbtiles.cf import process_tiles
         else:
-            from mbtiles.multiprocessing import process_tiles
+            from mbtiles.mp import process_tiles
 
         process_tiles(
             conn,
