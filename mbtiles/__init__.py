@@ -14,6 +14,7 @@ import rasterio
 __version__ = '1.4.2'
 
 base_kwds = None
+resampling = None
 src = None
 
 TILES_CRS = 'EPSG:3857'

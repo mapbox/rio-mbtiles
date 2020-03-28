@@ -5,6 +5,7 @@ import math
 from multiprocessing import cpu_count, Pool
 import os
 import sqlite3
+from threading import Semaphore
 
 import click
 import mercantile
@@ -16,7 +17,6 @@ from rasterio.warp import transform
 
 from mbtiles import init_worker, process_tile
 from mbtiles import __version__ as mbtiles_version
-
 
 DEFAULT_NUM_WORKERS = cpu_count() - 1
 RESAMPLING_METHODS = [method.name for method in Resampling]
@@ -121,7 +121,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
             # Name and description.
             title = title or os.path.basename(src.name)
-            description = description or src.name
+            description = description or title
 
             # Compute the geographic bounding box of the dataset.
             (west, east), (south, north) = transform(
@@ -165,6 +165,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         # workaround for bug here: https://bugs.python.org/issue27126
         sqlite3.connect(':memory:').close()
 
+        sqlite_semaphore = Semaphore()
         conn = sqlite3.connect(output)
         cur = conn.cursor()
         cur.execute(
@@ -173,6 +174,7 @@ def mbtiles(ctx, files, output, overwrite, title, description,
             "tile_row integer, tile_data blob);")
         cur.execute(
             "CREATE TABLE metadata (name text, value text);")
+        conn.commit()
 
         # Insert mbtiles metadata into db.
         cur.execute(
@@ -196,10 +198,6 @@ def mbtiles(ctx, files, output, overwrite, title, description,
 
         conn.commit()
 
-        # Create a pool of workers to process tile tasks.
-        pool = Pool(num_workers, init_worker,
-                    (inputfile, base_kwds, resampling), 100)
-
         # Constrain bounds.
         EPS = 1.0e-10
         west = max(-180 + EPS, west)
@@ -211,30 +209,38 @@ def mbtiles(ctx, files, output, overwrite, title, description,
         tiles = mercantile.tiles(
             west, south, east, north, range(minzoom, maxzoom + 1))
 
-        for tile, contents in pool.imap_unordered(process_tile, tiles):
+        # Create a pool of workers to process tile tasks.
+        max_workers = min(DEFAULT_NUM_WORKERS, num_workers)
+        task_chunks = max_workers
+        max_tasks = None  # None == process lives as long as the Pool
+        pool = Pool(max_workers, init_worker,
+                    (inputfile, base_kwds, resampling), max_tasks)
+
+        for tile, contents in pool.imap_unordered(process_tile, tiles, task_chunks):
+
+            # MBTiles have a different origin than Mercantile/tilebelt.
+            mbtile_y = int(math.pow(2, tile.z)) - tile.y - 1
 
             if contents is None:
                 log.info("Tile %r is empty and will be skipped", tile)
                 continue
 
-            # MBTiles have a different origin than Mercantile/tilebelt.
-            tiley = int(math.pow(2, tile.z)) - tile.y - 1
-
             # Optional image dump.
             if image_dump:
                 img_name = '%d-%d-%d.%s' % (
-                    tile.x, tiley, tile.z, img_ext)
+                    tile.x, mbtile_y, tile.z, img_ext)
                 img_path = os.path.join(image_dump, img_name)
                 with open(img_path, 'wb') as img:
                     img.write(contents)
 
             # Insert tile into db.
-            cur.execute(
-                "INSERT INTO tiles "
-                "(zoom_level, tile_column, tile_row, tile_data) "
-                "VALUES (?, ?, ?, ?);",
-                (tile.z, tile.x, tiley, sqlite3.Binary(contents)))
+            with sqlite_semaphore:
+                cur.execute(
+                    "INSERT INTO tiles "
+                    "(zoom_level, tile_column, tile_row, tile_data) "
+                    "VALUES (?, ?, ?, ?);",
+                    (tile.z, tile.x, mbtile_y, sqlite3.Binary(contents)))
+                conn.commit()
 
-            conn.commit()
-
+        conn.commit()
         conn.close()
