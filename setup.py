@@ -29,11 +29,14 @@ setup(name='rio-mbtiles',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
-      python_requires='>=2.7.10',
+      python_requires='>=3.6',
       install_requires=[
           'click',
+          'aiofile',
+          'aiosqlite',
           'mercantile',
           'numpy>=1.10',
+          'psutil',
           'rasterio~=1.0'
       ],
       extras_require={
