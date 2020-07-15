@@ -310,7 +310,7 @@ def mbtiles(
             from mbtiles.cf import process_tiles
         elif implementation == "mp":
             from mbtiles.mp import process_tiles
-        elif sys.version_info >= (3, 6):
+        elif sys.version_info >= (3, 7):
             from mbtiles.cf import process_tiles
         else:
             from mbtiles.mp import process_tiles
