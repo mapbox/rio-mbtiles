@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import sqlite3
+import sys
 
 import click
 import mercantile
@@ -309,11 +310,10 @@ def mbtiles(
             from mbtiles.cf import process_tiles
         elif implementation == "mp":
             from mbtiles.mp import process_tiles
+        elif sys.version_info >= (3, 6):
+            from mbtiles.cf import process_tiles
         else:
-            try:
-                from mbtiles.cf import process_tiles
-            except ImportError:
-                from mbtiles.mp import process_tiles
+            from mbtiles.mp import process_tiles
 
         process_tiles(
             conn,
