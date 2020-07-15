@@ -146,7 +146,7 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     "--implementation",
     "implementation",
     type=click.Choice(["cf", "mp"]),
-    default="mp",
+    default=None,
     help="Concurrency implementation. Use concurrent.futures (cf) or multiprocessing (mp).",
 )
 @click.pass_context
@@ -307,8 +307,13 @@ def mbtiles(
 
         if implementation == "cf":
             from mbtiles.cf import process_tiles
-        else:
+        elif implementation == "mp":
             from mbtiles.mp import process_tiles
+        else:
+            try:
+                from mbtiles.cf import process_tiles
+            except ImportError:
+                from mbtiles.mp import process_tiles
 
         process_tiles(
             conn,

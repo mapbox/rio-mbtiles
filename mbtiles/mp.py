@@ -1,11 +1,23 @@
 # multiprocessing Pool implementation
 
 from multiprocessing import Pool
+import warnings
 
 from mbtiles.compat import zip_longest
 from mbtiles.worker import init_worker, process_tile
 
 BATCH_SIZE = 100
+
+
+class MbtilesDeprecationWarning(FutureWarning):
+    """For rio-mbtiles deprecations"""
+
+
+warnings.warn(
+    "The multiprocessing.Pool implementation will be removed in rio-mbtiles 2.0.0.",
+    MbtilesDeprecationWarning,
+    stacklevel=2,
+)
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -26,7 +38,9 @@ def process_tiles(
     img_ext=None,
     image_dump=None,
 ):
-    pool = Pool(num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE)
+    pool = Pool(
+        num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE
+    )
 
     for group in grouper(pool.imap_unordered(process_tile, tiles), BATCH_SIZE):
         for item in group:
