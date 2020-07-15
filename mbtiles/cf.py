@@ -42,7 +42,7 @@ def process_tiles(
                     cur, tile, contents, img_ext=img_ext, image_dump=image_dump
                 )
 
-            group = islice(tiles, BATCH_SIZE)
+            group = islice(tiles, len(done))
             for tile in group:
                 futures.add(executor.submit(process_tile, tile))
 
