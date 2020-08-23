@@ -41,21 +41,19 @@ def process_tiles(
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
-    with Pool(
-        num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE
-    ) as pool:
+    pool = Pool(num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE)
 
-        for group in grouper(pool.imap_unordered(process_tile, tiles), BATCH_SIZE):
-            for group_n, item in enumerate(group, start=1):
-                if item is None:
-                    break
-                tile, contents = item
-                insert_results(
-                    conn, tile, contents, img_ext=img_ext, image_dump=image_dump
-                )
+    for group in grouper(pool.imap_unordered(process_tile, tiles), BATCH_SIZE):
+        for group_n, item in enumerate(group, start=1):
+            if item is None:
+                break
+            tile, contents = item
+            insert_results(
+                conn, tile, contents, img_ext=img_ext, image_dump=image_dump
+            )
 
-            conn.commit()
+        conn.commit()
 
-            if progress_bar is not None:
-                if progress_bar.n + group_n < progress_bar.total:
-                    progress_bar.update(group_n)
+        if progress_bar is not None:
+            if progress_bar.n + group_n < progress_bar.total:
+                progress_bar.update(group_n)
