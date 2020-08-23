@@ -211,18 +211,52 @@ def test_rgba_png(tmpdir, data, filename):
     assert cur.fetchone()[1] == filename
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 7), reason="c.f. implementation requires Python 3.7"
+@pytest.mark.parametrize(
+    "minzoom,maxzoom,exp_num_tiles,impl",
+    [
+        (4, 10, 70, "mp"),
+        (6, 7, 6, "mp"),
+        pytest.param(
+            4,
+            10,
+            70,
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python 3.7",
+            ),
+        ),
+        pytest.param(
+            6,
+            7,
+            6,
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python 3.7",
+            ),
+        ),
+    ],
 )
-def test_export_cf(tmpdir, data):
+def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
     inputfile = str(data.join("RGB.byte.tif"))
     outputfile = str(tmpdir.join("export.mbtiles"))
     runner = CliRunner()
     result = runner.invoke(
-        main_group, ["mbtiles", "--implementation", "cf", inputfile, outputfile]
+        main_group,
+        [
+            "mbtiles",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "{}..{}".format(minzoom, maxzoom),
+            inputfile,
+            outputfile,
+        ],
     )
     assert result.exit_code == 0
     conn = sqlite3.connect(outputfile)
     cur = conn.cursor()
     cur.execute("select * from tiles")
-    assert len(cur.fetchall()) == 6
+    results = cur.fetchall()
+    assert len(results) == exp_num_tiles

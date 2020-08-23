@@ -13,6 +13,7 @@ from rasterio.enums import Resampling
 from rasterio.rio.helpers import resolve_inout
 from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
+from tqdm import tqdm
 
 from mbtiles import __version__ as mbtiles_version
 
@@ -150,6 +151,9 @@ def validate_nodata(dst_nodata, src_nodata, meta_nodata):
     default=None,
     help="Concurrency implementation. Use concurrent.futures (cf) or multiprocessing (mp).",
 )
+@click.option(
+    "--progress-bar", "-#", default=False, is_flag=True, help="Display progress bar."
+)
 @click.pass_context
 def mbtiles(
     ctx,
@@ -169,6 +173,7 @@ def mbtiles(
     resampling,
     rgba,
     implementation,
+    progress_bar,
 ):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
@@ -303,8 +308,44 @@ def mbtiles(
         east = min(180 - EPS, east)
         north = min(85.051129, north)
 
-        # Initialize iterator over output tiles.
-        tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
+        if progress_bar:
+            # Estimate total number of tiles.
+            west_merc, south_merc = mercantile.xy(west, south)
+            east_merc, north_merc = mercantile.xy(east, north)
+            raster_area = (east_merc - west_merc) * (north_merc - south_merc)
+
+            est_num_tiles = 0
+            zoom = minzoom
+
+            (
+                minz_west_merc,
+                minz_south_merc,
+                minz_east_merc,
+                minz_north_merc,
+            ) = mercantile.xy_bounds(mercantile.tile(0, 0, zoom))
+            minzoom_tile_area = (minz_east_merc - minz_west_merc) * (
+                minz_north_merc - minz_south_merc
+            )
+            ratio = min_ratio = raster_area / minzoom_tile_area
+
+            while ratio < 16:
+                est_num_tiles += len(
+                    list(mercantile.tiles(west, south, east, north, zoom))
+                )
+                zoom += 1
+                ratio *= 4.0
+
+            est_num_tiles += int(
+                sum(
+                    math.ceil(math.pow(4.0, z - minzoom) * min_ratio)
+                    for z in range(zoom, maxzoom + 1)
+                )
+            )
+
+            pbar = tqdm(total=est_num_tiles)
+
+        else:
+            pbar = None
 
         if implementation == "cf":
             from mbtiles.cf import process_tiles
@@ -314,6 +355,9 @@ def mbtiles(
             from mbtiles.cf import process_tiles
         else:
             from mbtiles.mp import process_tiles
+
+        # Initialize iterator over output tiles.
+        tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
 
         process_tiles(
             conn,
@@ -325,7 +369,11 @@ def mbtiles(
             resampling=resampling,
             img_ext=img_ext,
             image_dump=image_dump,
+            progress_bar=pbar,
         )
+
+        if pbar is not None:
+            pbar.update(pbar.total - pbar.n)
 
         conn.commit()
         conn.close()

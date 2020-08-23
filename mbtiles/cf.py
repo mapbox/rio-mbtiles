@@ -21,7 +21,10 @@ def process_tiles(
     resampling=None,
     img_ext=None,
     image_dump=None,
+    progress_bar=None,
 ):
+    """Warp imagery into tiles and commit to mbtiles database.
+    """
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=num_workers,
         initializer=init_worker,
@@ -36,14 +39,18 @@ def process_tiles(
                 futures, return_when=concurrent.futures.FIRST_COMPLETED
             )
 
+            group = islice(tiles, len(done))
+            for tile in group:
+                futures.add(executor.submit(process_tile, tile))
+
             for future in done:
                 tile, contents = future.result()
                 insert_results(
                     cur, tile, contents, img_ext=img_ext, image_dump=image_dump
                 )
 
-            group = islice(tiles, len(done))
-            for tile in group:
-                futures.add(executor.submit(process_tile, tile))
-
             conn.commit()
+
+            if progress_bar is not None:
+                if progress_bar.n + len(done) < progress_bar.total:
+                    progress_bar.update(len(done))
