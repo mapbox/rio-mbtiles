@@ -330,7 +330,7 @@ def mbtiles(
 
             while ratio < 16:
                 est_num_tiles += len(
-                    list(mercantile.tiles(west, south, east, north, zoom))
+                    list(mercantile.tiles(west, south, east, north, [zoom]))
                 )
                 zoom += 1
                 ratio *= 4.0

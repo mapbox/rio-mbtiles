@@ -52,8 +52,11 @@ def process_tiles(
                 conn, tile, contents, img_ext=img_ext, image_dump=image_dump
             )
 
+        print(group_n)
         conn.commit()
 
         if progress_bar is not None:
             if progress_bar.n + group_n < progress_bar.total:
                 progress_bar.update(group_n)
+
+    pool.close()
