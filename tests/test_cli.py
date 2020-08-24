@@ -212,30 +212,19 @@ def test_rgba_png(tmpdir, data, filename):
 
 
 @pytest.mark.parametrize(
-    "minzoom,maxzoom,exp_num_tiles,impl",
+    "minzoom,maxzoom,exp_num_tiles", [(4, 10, 70), (6, 7, 6)],
+)
+@pytest.mark.parametrize(
+    "impl",
     [
-        (4, 10, 70, "mp"),
-        (6, 7, 6, "mp"),
         pytest.param(
-            4,
-            10,
-            70,
             "cf",
             marks=pytest.mark.skipif(
                 sys.version_info < (3, 7),
                 reason="c.f. implementation requires Python 3.7",
             ),
         ),
-        pytest.param(
-            6,
-            7,
-            6,
-            "cf",
-            marks=pytest.mark.skipif(
-                sys.version_info < (3, 7),
-                reason="c.f. implementation requires Python 3.7",
-            ),
-        ),
+        "mp",
     ],
 )
 def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
