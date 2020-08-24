@@ -260,3 +260,41 @@ def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
     cur.execute("select * from tiles")
     results = cur.fetchall()
     assert len(results) == exp_num_tiles
+
+
+@pytest.mark.parametrize("filename", ["RGBA.byte.tif"])
+@pytest.mark.parametrize(
+    "impl",
+    [
+        pytest.param(
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python 3.7",
+            ),
+        ),
+        "mp",
+    ],
+)
+def test_progress_bar(tmpdir, data, impl, filename):
+    inputfile = str(data.join(filename))
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "-#",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "4..11",
+            "--rgba",
+            "--format",
+            "PNG",
+            inputfile,
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 0
+    assert "100%" in result.output
