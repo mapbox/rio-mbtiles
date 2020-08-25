@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import sys
+from unittest import mock
 import warnings
 
 import click
@@ -9,7 +10,9 @@ import pytest
 import rasterio
 from rasterio.rio.main import main_group
 
-from mbtiles.scripts.cli import validate_nodata
+import mbtiles.scripts.cli
+
+from conftest import mock
 
 
 def test_cli_help():
@@ -19,10 +22,13 @@ def test_cli_help():
     assert "Export a dataset to MBTiles (version 1.1)" in result.output
 
 
-def test_nodata_validation():
-    """Insufficient nodata definition leads to BadParameter"""
-    with pytest.raises(click.BadParameter):
-        validate_nodata(0, None, None)
+@mock.patch("mbtiles.scripts.cli.rasterio")
+def test_dst_nodata_validation(rio):
+    """--dst-nodata requires source nodata in some form"""
+    rio.open.return_value.__enter__.return_value.profile.get.return_value = None
+    runner = CliRunner()
+    result = runner.invoke(main_group, ["mbtiles", "--dst-nodata", "0", "in.tif", "out.mbtiles"])
+    assert result.exit_code == 2
 
 
 @pytest.mark.parametrize("filename", ["RGB.byte.tif", "RGBA.byte.tif"])

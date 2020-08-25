@@ -8,9 +8,11 @@ import py
 import pytest
 import rasterio
 
-
 if sys.version_info > (3,):
     reduce = functools.reduce
+    from unittest import mock
+else:
+    import mock
 
 test_files = [
     os.path.join(os.path.dirname(__file__), p) for p in ['data/RGB.byte.tif', 'data/RGBA.byte.tif']]

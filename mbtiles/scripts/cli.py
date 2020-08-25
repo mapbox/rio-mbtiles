@@ -20,45 +20,9 @@ from mbtiles import __version__ as mbtiles_version
 
 DEFAULT_NUM_WORKERS = None
 RESAMPLING_METHODS = [method.name for method in Resampling]
-BATCH_SIZE = 100
 TILES_CRS = "EPSG:3857"
 
 log = logging.getLogger(__name__)
-
-
-def insert_results(cursor, tile, contents, img_ext=None, image_dump=None):
-    "Write worker results to sqlite3" ""
-    if contents is None:
-        log.info("Tile %r is empty and will be skipped", tile)
-        return
-
-    # MBTiles have a different origin than Mercantile/tilebelt.
-    tiley = int(math.pow(2, tile.z)) - tile.y - 1
-
-    # Optional image dump.
-    if image_dump:
-        img_name = "{}-{}-{}.{}".format(tile.x, tiley, tile.z, img_ext)
-        img_path = os.path.join(image_dump, img_name)
-        with open(img_path, "wb") as img:
-            img.write(contents)
-
-    # Insert tile into db.
-    log.info("Inserting tile: tile=%r", tile)
-
-    cursor.execute(
-        "INSERT INTO tiles "
-        "(zoom_level, tile_column, tile_row, tile_data) "
-        "VALUES (?, ?, ?, ?);",
-        (tile.z, tile.x, tiley, sqlite3.Binary(contents)),
-    )
-
-
-def validate_nodata(dst_nodata, src_nodata, meta_nodata):
-    """Raise BadParameter if we don't have a src nodata for a dst"""
-    if dst_nodata is not None and (src_nodata is None and meta_nodata is None):
-        raise click.BadParameter(
-            "--src-nodata must be provided because " "dst-nodata is not None."
-        )
 
 
 @click.command(short_help="Export a dataset to MBTiles.")
@@ -207,7 +171,10 @@ def mbtiles(
         # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
 
-            validate_nodata(dst_nodata, src_nodata, src.profile.get("nodata"))
+            if dst_nodata is not None and (src_nodata is None and src.profile.get("nodata") is None):
+                raise click.BadParameter(
+                    "--src-nodata must be provided because " "dst-nodata is not None."
+                )
             base_kwds = {"dst_nodata": dst_nodata, "src_nodata": src_nodata}
 
             if src_nodata is not None:
@@ -358,6 +325,31 @@ def mbtiles(
 
         # Initialize iterator over output tiles.
         tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
+
+        def insert_results(cursor, tile, contents, img_ext=None, image_dump=None):
+            if contents is None:
+                log.info("Tile %r is empty and will be skipped", tile)
+                return
+
+            # MBTiles have a different origin than Mercantile/tilebelt.
+            tiley = int(math.pow(2, tile.z)) - tile.y - 1
+
+            # Optional image dump.
+            if image_dump:
+                img_name = "{}-{}-{}.{}".format(tile.x, tiley, tile.z, img_ext)
+                img_path = os.path.join(image_dump, img_name)
+                with open(img_path, "wb") as img:
+                    img.write(contents)
+
+            # Insert tile into db.
+            log.info("Inserting tile: tile=%r", tile)
+
+            cursor.execute(
+                "INSERT INTO tiles "
+                "(zoom_level, tile_column, tile_row, tile_data) "
+                "VALUES (?, ?, ?, ?);",
+                (tile.z, tile.x, tiley, sqlite3.Binary(contents)),
+            )
 
         process_tiles(
             conn,
