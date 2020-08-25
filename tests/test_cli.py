@@ -1,7 +1,6 @@
 import os
 import sqlite3
 import sys
-from unittest import mock
 import warnings
 
 import click
