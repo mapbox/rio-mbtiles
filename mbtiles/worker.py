@@ -20,10 +20,11 @@ log = logging.getLogger(__name__)
 
 
 def init_worker(path, profile, resampling_method):
-    global base_kwds, src, resampling
+    global base_kwds, filename, resampling
     resampling = Resampling[resampling_method]
-    src = rasterio.open(path)
+    # src = rasterio.open(path)
     base_kwds = profile.copy()
+    filename = path
 
 
 def process_tile(tile):
@@ -42,7 +43,9 @@ def process_tile(tile):
         Image bytes corresponding to the tile.
 
     """
-    global base_kwds, resampling, src
+    global base_kwds, resampling, filename
+
+    src = rasterio.open(filename)
 
     # Get the bounds of the tile.
     ulx, uly = mercantile.xy(*mercantile.ul(tile.x, tile.y, tile.z))

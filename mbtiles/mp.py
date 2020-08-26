@@ -16,9 +16,10 @@ warnings.warn(
 
 
 def process_tiles(
-    conn,
     tiles,
+    init_mbtiles,
     insert_results,
+    commit_mbtiles,
     num_workers=None,
     inputfile=None,
     base_kwds=None,
@@ -39,15 +40,16 @@ def process_tiles(
         args = [iter(iterable)] * n
         return zip_longest(*args, fillvalue=fillvalue)
 
+    init_mbtiles()
+
     for group in grouper(pool.imap_unordered(process_tile, tiles), BATCH_SIZE):
         for group_n, item in enumerate(group, start=1):
             if item is None:
                 break
             tile, contents = item
-            insert_results(conn, tile, contents, img_ext=img_ext, image_dump=image_dump)
+            insert_results(tile, contents, img_ext=img_ext, image_dump=image_dump)
 
-        print(group_n)
-        conn.commit()
+        commit_mbtiles()
 
         if progress_bar is not None:
             if progress_bar.n + group_n < progress_bar.total:

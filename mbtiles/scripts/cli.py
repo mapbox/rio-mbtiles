@@ -243,46 +243,6 @@ def mbtiles(
 
         img_ext = "jpg" if img_format.lower() == "jpeg" else "png"
 
-        # Initialize the sqlite db.
-        if os.path.exists(output):
-            os.unlink(output)
-
-        # workaround for bug here: https://bugs.python.org/issue27126
-        sqlite3.connect(":memory:").close()
-
-        conn = sqlite3.connect(output)
-        cur = conn.cursor()
-        cur.execute(
-            "CREATE TABLE tiles "
-            "(zoom_level integer, tile_column integer, "
-            "tile_row integer, tile_data blob);"
-        )
-        cur.execute("CREATE TABLE metadata (name text, value text);")
-
-        # Insert mbtiles metadata into db.
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);", ("name", title)
-        )
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);", ("type", layer_type)
-        )
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);", ("version", "1.1")
-        )
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("description", description),
-        )
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);", ("format", img_ext)
-        )
-        cur.execute(
-            "INSERT INTO metadata (name, value) VALUES (?, ?);",
-            ("bounds", "%f,%f,%f,%f" % (west, south, east, north)),
-        )
-
-        conn.commit()
-
         # Constrain bounds.
         EPS = 1.0e-10
         west = max(-180 + EPS, west)
@@ -329,10 +289,49 @@ def mbtiles(
         else:
             pbar = None
 
-        # Initialize iterator over output tiles.
-        tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))
+        # Initialize the sqlite db.
+        if os.path.exists(output):
+            os.unlink(output)
+        # workaround for bug here: https://bugs.python.org/issue27126
+        sqlite3.connect(":memory:").close()
+        conn = sqlite3.connect(output)
 
-        def insert_results(cursor, tile, contents, img_ext=None, image_dump=None):
+        def init_mbtiles():
+            """Note: this closes over other local variables of the command function."""
+            cur = conn.cursor()
+            cur.execute(
+                "CREATE TABLE tiles "
+                "(zoom_level integer, tile_column integer, "
+                "tile_row integer, tile_data blob);"
+            )
+            cur.execute("CREATE TABLE metadata (name text, value text);")
+
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("name", title)
+            )
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("type", layer_type),
+            )
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("version", "1.1")
+            )
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("description", description),
+            )
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("format", img_ext)
+            )
+            cur.execute(
+                "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                ("bounds", "%f,%f,%f,%f" % (west, south, east, north)),
+            )
+            conn.commit()
+
+        def insert_results(tile, contents, img_ext=None, image_dump=None):
+            """Also a closure."""
+            cursor = conn.cursor()
             if contents is None:
                 log.info("Tile %r is empty and will be skipped", tile)
                 return
@@ -357,21 +356,23 @@ def mbtiles(
                 (tile.z, tile.x, tiley, sqlite3.Binary(contents)),
             )
 
-        process_tiles(
-            conn,
-            tiles,
-            insert_results,
-            num_workers=num_workers,
-            inputfile=inputfile,
-            base_kwds=base_kwds,
-            resampling=resampling,
-            img_ext=img_ext,
-            image_dump=image_dump,
-            progress_bar=pbar,
-        )
+        def commit_mbtiles():
+            conn.commit()
 
-        if pbar is not None:
-            pbar.update(pbar.total - pbar.n)
+        with conn:
+            process_tiles(
+                mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1)),
+                init_mbtiles,
+                insert_results,
+                commit_mbtiles,
+                num_workers=num_workers,
+                inputfile=inputfile,
+                base_kwds=base_kwds,
+                resampling=resampling,
+                img_ext=img_ext,
+                image_dump=image_dump,
+                progress_bar=pbar,
+            )
 
-        conn.commit()
-        conn.close()
+            if pbar is not None:
+                pbar.update(pbar.total - pbar.n)
