@@ -26,7 +26,9 @@ def test_dst_nodata_validation(rio):
     """--dst-nodata requires source nodata in some form"""
     rio.open.return_value.__enter__.return_value.profile.get.return_value = None
     runner = CliRunner()
-    result = runner.invoke(main_group, ["mbtiles", "--dst-nodata", "0", "in.tif", "out.mbtiles"])
+    result = runner.invoke(
+        main_group, ["mbtiles", "--dst-nodata", "0", "in.tif", "out.mbtiles"]
+    )
     assert result.exit_code == 2
 
 
@@ -232,7 +234,7 @@ def test_rgba_png(tmpdir, data, filename):
         "mp",
     ],
 )
-def test_export_count(tmpdir, data, recwarn, minzoom, maxzoom, exp_num_tiles, impl):
+def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
     inputfile = str(data.join("RGB.byte.tif"))
     outputfile = str(tmpdir.join("export.mbtiles"))
     runner = CliRunner()
@@ -254,7 +256,6 @@ def test_export_count(tmpdir, data, recwarn, minzoom, maxzoom, exp_num_tiles, im
     cur.execute("select * from tiles")
     results = cur.fetchall()
     assert len(results) == exp_num_tiles
-    assert len([w for w in recwarn if w.category == FutureWarning]) == int(impl == "mp")
 
 
 @pytest.mark.parametrize("filename", ["RGBA.byte.tif"])
@@ -271,7 +272,7 @@ def test_export_count(tmpdir, data, recwarn, minzoom, maxzoom, exp_num_tiles, im
         "mp",
     ],
 )
-def test_progress_bar(tmpdir, data, recwarn, impl, filename):
+def test_progress_bar(tmpdir, data, impl, filename):
     inputfile = str(data.join(filename))
     outputfile = str(tmpdir.join("export.mbtiles"))
     runner = CliRunner()
@@ -293,4 +294,3 @@ def test_progress_bar(tmpdir, data, recwarn, impl, filename):
     )
     assert result.exit_code == 0
     assert "100%" in result.output
-    assert len([w for w in recwarn if w.category == FutureWarning]) == int(impl == "mp")

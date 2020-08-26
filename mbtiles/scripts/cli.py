@@ -171,7 +171,9 @@ def mbtiles(
         # Read metadata from the source dataset.
         with rasterio.open(inputfile) as src:
 
-            if dst_nodata is not None and (src_nodata is None and src.profile.get("nodata") is None):
+            if dst_nodata is not None and (
+                src_nodata is None and src.profile.get("nodata") is None
+            ):
                 raise click.BadParameter(
                     "--src-nodata must be provided because " "dst-nodata is not None."
                 )

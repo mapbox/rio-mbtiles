@@ -8,6 +8,12 @@ from mbtiles.worker import init_worker, process_tile
 
 BATCH_SIZE = 100
 
+warnings.warn(
+    "The multiprocessing.Pool implementation will be removed in rio-mbtiles 2.0.0.",
+    FutureWarning,
+    stacklevel=2,
+)
+
 
 def process_tiles(
     conn,
@@ -23,12 +29,9 @@ def process_tiles(
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
-    warnings.warn(
-        "The multiprocessing.Pool implementation will be removed in rio-mbtiles 2.0.0.",
-        FutureWarning,
-        stacklevel=2,
+    pool = Pool(
+        num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE
     )
-    pool = Pool(num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE)
 
     def grouper(iterable, n, fillvalue=None):
         "Collect data into fixed-length chunks or blocks"
@@ -41,9 +44,7 @@ def process_tiles(
             if item is None:
                 break
             tile, contents = item
-            insert_results(
-                conn, tile, contents, img_ext=img_ext, image_dump=image_dump
-            )
+            insert_results(conn, tile, contents, img_ext=img_ext, image_dump=image_dump)
 
         print(group_n)
         conn.commit()
