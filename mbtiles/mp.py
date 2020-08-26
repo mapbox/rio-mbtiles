@@ -9,24 +9,6 @@ from mbtiles.worker import init_worker, process_tile
 BATCH_SIZE = 100
 
 
-class MbtilesDeprecationWarning(FutureWarning):
-    """For rio-mbtiles deprecations"""
-
-
-warnings.warn(
-    "The multiprocessing.Pool implementation will be removed in rio-mbtiles 2.0.0.",
-    MbtilesDeprecationWarning,
-    stacklevel=2,
-)
-
-
-def grouper(iterable, n, fillvalue=None):
-    "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
-
-
 def process_tiles(
     conn,
     tiles,
@@ -41,7 +23,18 @@ def process_tiles(
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
+    warnings.warn(
+        "The multiprocessing.Pool implementation will be removed in rio-mbtiles 2.0.0.",
+        FutureWarning,
+        stacklevel=2,
+    )
     pool = Pool(num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE)
+
+    def grouper(iterable, n, fillvalue=None):
+        "Collect data into fixed-length chunks or blocks"
+        # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+        args = [iter(iterable)] * n
+        return zip_longest(*args, fillvalue=fillvalue)
 
     for group in grouper(pool.imap_unordered(process_tile, tiles), BATCH_SIZE):
         for group_n, item in enumerate(group, start=1):
