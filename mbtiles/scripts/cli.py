@@ -166,6 +166,19 @@ def mbtiles(
 
     log = logging.getLogger(__name__)
 
+    if implementation == "cf" and sys.version_info < (3, 7):
+        raise click.BadParameter(
+            "concurrent.futures implementation requires python>=3.7"
+        )
+    elif implementation == "cf":
+        from mbtiles.cf import process_tiles
+    elif implementation == "mp":
+        from mbtiles.mp import process_tiles
+    elif sys.version_info >= (3, 7):
+        from mbtiles.cf import process_tiles
+    else:
+        from mbtiles.mp import process_tiles
+
     with ctx.obj["env"]:
 
         # Read metadata from the source dataset.
@@ -315,15 +328,6 @@ def mbtiles(
 
         else:
             pbar = None
-
-        if implementation == "cf":
-            from mbtiles.cf import process_tiles
-        elif implementation == "mp":
-            from mbtiles.mp import process_tiles
-        elif sys.version_info >= (3, 7):
-            from mbtiles.cf import process_tiles
-        else:
-            from mbtiles.mp import process_tiles
 
         # Initialize iterator over output tiles.
         tiles = mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1))

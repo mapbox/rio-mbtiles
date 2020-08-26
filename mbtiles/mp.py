@@ -30,7 +30,7 @@ def process_tiles(
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
     pool = Pool(
-        num_workers, init_worker, (inputfile, base_kwds, resampling), BATCH_SIZE
+        num_workers, init_worker, (inputfile, base_kwds, resampling), 100 * BATCH_SIZE
     )
 
     def grouper(iterable, n, fillvalue=None):

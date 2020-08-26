@@ -21,6 +21,16 @@ def test_cli_help():
     assert "Export a dataset to MBTiles (version 1.1)" in result.output
 
 
+@pytest.mark.skipif("sys.version_info >= (3, 7)", reason="Test requires Python < 3.7")
+def test_dst_impl_validation():
+    """c.f. implementation requires Python >= 3.7"""
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group, ["mbtiles", "--implementation", "cf", "in.tif", "out.mbtiles"]
+    )
+    assert result.exit_code == 2
+
+
 @mock.patch("mbtiles.scripts.cli.rasterio")
 def test_dst_nodata_validation(rio):
     """--dst-nodata requires source nodata in some form"""
@@ -228,7 +238,7 @@ def test_rgba_png(tmpdir, data, filename):
             "cf",
             marks=pytest.mark.skipif(
                 sys.version_info < (3, 7),
-                reason="c.f. implementation requires Python 3.7",
+                reason="c.f. implementation requires Python >= 3.7",
             ),
         ),
         "mp",
@@ -266,7 +276,7 @@ def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
             "cf",
             marks=pytest.mark.skipif(
                 sys.version_info < (3, 7),
-                reason="c.f. implementation requires Python 3.7",
+                reason="c.f. implementation requires Python >= 3.7",
             ),
         ),
         "mp",
