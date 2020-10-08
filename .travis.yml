@@ -1,6 +1,5 @@
-sudo: false
 language: python
-dist: trusty
+dist: xenial
 env:
   global:
     - PIP_WHEEL_DIR=$HOME/.cache/pip
@@ -8,6 +7,7 @@ env:
 python:
   - "2.7.15"
   - "3.6"
+  - "3.7"
 cache:
   directories:
     - $HOME/.cache/pip/

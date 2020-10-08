@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.5.0 (TBD)
+-----------
+
+- Add an optional progress bar based on tqdm.
+- Add concurrent.futures and multiprocessing implementations of process_tiles()
+  (#54).
+
 1.4.2 (2019-03-07)
 ------------------
 
