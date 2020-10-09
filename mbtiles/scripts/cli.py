@@ -373,8 +373,6 @@ def mbtiles(
 
         def init_mbtiles():
             """Note: this closes over other local variables of the command function."""
-            nonlocal west, south, east, north
-
             cur = conn.cursor()
 
             if append:
@@ -384,14 +382,14 @@ def mbtiles(
                 prev_west, prev_south, prev_east, prev_north = map(
                     float, bounds.split(",")
                 )
-                west = min(west, prev_west)
-                south = min(south, prev_south)
-                east = max(east, prev_east)
-                north = max(north, prev_north)
+                new_west = min(west, prev_west)
+                new_south = min(south, prev_south)
+                new_east = max(east, prev_east)
+                new_north = max(north, prev_north)
 
                 cur.execute(
                     "UPDATE metadata SET value = ? WHERE name = 'bounds';",
-                    ("%f,%f,%f,%f" % (west, south, east, north),),
+                    ("%f,%f,%f,%f" % (new_west, new_south, new_east, new_north),),
                 )
             else:
                 cur.execute(
