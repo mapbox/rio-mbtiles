@@ -234,7 +234,11 @@ def mbtiles(
 
     """
     output, files = resolve_inout(
-        files=files, output=output, overwrite=overwrite, append=append
+        files=files,
+        output=output,
+        overwrite=overwrite,
+        append=append,
+        num_inputs=1,
     )
     inputfile = files[0]
 
@@ -377,7 +381,10 @@ def mbtiles(
 
             if append:
                 cur.execute("SELECT * FROM metadata WHERE name = 'bounds';")
-                _, bounds, = cur.fetchone()
+                (
+                    _,
+                    bounds,
+                ) = cur.fetchone()
 
                 prev_west, prev_south, prev_east, prev_north = map(
                     float, bounds.split(",")
@@ -393,11 +400,16 @@ def mbtiles(
                 )
             else:
                 cur.execute(
-                    "CREATE TABLE tiles "
+                    "CREATE TABLE IF NOT EXISTS tiles "
                     "(zoom_level integer, tile_column integer, "
                     "tile_row integer, tile_data blob);"
                 )
-                cur.execute("CREATE TABLE metadata (name text, value text);")
+                cur.execute(
+                    "CREATE UNIQUE INDEX idx_zcr ON tiles (zoom_level, tile_column, tile_row);"
+                )
+                cur.execute(
+                    "CREATE TABLE IF NOT EXISTS metadata (name text, value text);"
+                )
 
                 cur.execute(
                     "INSERT INTO metadata (name, value) VALUES (?, ?);", ("name", title)

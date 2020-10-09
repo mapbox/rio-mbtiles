@@ -229,7 +229,13 @@ def test_rgba_png(tmpdir, data, filename):
 
 
 @pytest.mark.parametrize(
-    "minzoom,maxzoom,exp_num_tiles", [(4, 10, 70), (6, 7, 6)],
+    "minzoom,maxzoom,exp_num_tiles,source",
+    [
+        (4, 10, 70, "RGB.byte.tif"),
+        (6, 7, 6, "RGB.byte.tif"),
+        (4, 10, 12, "rgb-193f513.vrt"),
+        (4, 10, 69, "rgb-fa48952.vrt"),
+    ],
 )
 @pytest.mark.parametrize(
     "impl",
@@ -244,8 +250,8 @@ def test_rgba_png(tmpdir, data, filename):
         "mp",
     ],
 )
-def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, impl):
-    inputfile = str(data.join("RGB.byte.tif"))
+def test_export_count(tmpdir, data, minzoom, maxzoom, exp_num_tiles, source, impl):
+    inputfile = str(data.join(source))
     outputfile = str(tmpdir.join("export.mbtiles"))
     runner = CliRunner()
     result = runner.invoke(
@@ -304,3 +310,95 @@ def test_progress_bar(tmpdir, data, impl, filename):
     )
     assert result.exit_code == 0
     assert "100%" in result.output
+
+
+@pytest.mark.parametrize(
+    "minzoom,maxzoom,exp_num_tiles,sources",
+    [(4, 10, 70, ["rgb-193f513.vrt", "rgb-fa48952.vrt"])],
+)
+@pytest.mark.parametrize(
+    "impl",
+    [
+        pytest.param(
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python >= 3.7",
+            ),
+        ),
+        "mp",
+    ],
+)
+def test_appending_export_count(
+    tmpdir, data, minzoom, maxzoom, exp_num_tiles, sources, impl
+):
+    """Appending adds to the tileset but does not duplicate any"""
+    inputfiles = [str(data.join(source)) for source in sources]
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "{}..{}".format(minzoom, maxzoom),
+            inputfiles[0],
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 0
+
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    results = cur.fetchall()
+    assert len(results) == 12
+
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "--append",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "{}..{}".format(minzoom, maxzoom),
+            inputfiles[1],
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 0
+
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    results = cur.fetchall()
+    assert len(results) == exp_num_tiles
+
+
+def test_mutually_exclusive_operations():
+    """--overwrite and --append are mutually exclusive"""
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group, ["mbtiles", "--append", "--overwrite", "foo.tif", "foo.mbtiles"]
+    )
+    assert result.exit_code == 2
+
+
+@pytest.mark.parametrize("inputfiles", [[], ["a.tif", "b.tif"]])
+def test_input_required(inputfiles):
+    """We require exactly one input file"""
+    runner = CliRunner()
+    result = runner.invoke(main_group, ["mbtiles"] + inputfiles + ["foo.mbtiles"])
+    assert result.exit_code == 2
+
+
+def test_append_or_overwrite_required(tmpdir):
+    """If the output files exists --append or --overwrite is required"""
+    outputfile = tmpdir.join("export.mbtiles")
+    outputfile.ensure()
+    runner = CliRunner()
+    result = runner.invoke(main_group, ["mbtiles", "a.tif", str(outputfile)])
+    assert result.exit_code == 1
