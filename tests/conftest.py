@@ -16,7 +16,12 @@ else:
 
 test_files = [
     os.path.join(os.path.dirname(__file__), p)
-    for p in ["data/RGB.byte.tif", "data/RGBA.byte.tif"]
+    for p in [
+        "data/RGB.byte.tif",
+        "data/RGBA.byte.tif",
+        "data/rgb-193f513.vrt",
+        "data/rgb-fa48952.vrt",
+    ]
 ]
 
 

@@ -10,7 +10,7 @@ import click
 import mercantile
 import rasterio
 from rasterio.enums import Resampling
-from rasterio.rio.helpers import resolve_inout
+from rasterio.errors import FileOverwriteError
 from rasterio.rio.options import overwrite_opt, output_opt
 from rasterio.warp import transform
 from tqdm import tqdm
@@ -25,6 +25,74 @@ TILES_CRS = "EPSG:3857"
 log = logging.getLogger(__name__)
 
 
+def resolve_inout(
+    input=None, output=None, files=None, overwrite=False, append=False, num_inputs=None
+):
+    """Resolves inputs and outputs from standard args and options.
+
+    Parameters
+    ----------
+    input : str
+        A single input filename, optional.
+    output : str
+        A single output filename, optional.
+    files : str
+        A sequence of filenames in which the last is the output filename.
+    overwrite : bool
+        Whether to force overwriting the output file.
+    append : bool
+        Whether to append to the output file.
+    num_inputs : int
+        Raise exceptions if the number of resolved input files is higher
+        or lower than this number.
+
+    Returns
+    -------
+    tuple (str, list of str)
+        The resolved output filename and input filenames as a tuple of
+        length 2.
+
+    If provided, the output file may be overwritten. An output
+    file extracted from files will not be overwritten unless
+    overwrite is True.
+
+    Raises
+    ------
+    click.BadParameter
+
+    """
+    resolved_output = output or (files[-1] if files else None)
+    resolved_inputs = (
+        [input]
+        if input
+        else [] + list(files[: -1 if not output else None])
+        if files
+        else []
+    )
+
+    if num_inputs is not None:
+        if len(resolved_inputs) < num_inputs:
+            raise click.BadParameter("Insufficient inputs")
+        elif len(resolved_inputs) > num_inputs:
+            raise click.BadParameter("Too many inputs")
+
+    if overwrite and append:
+        raise click.BadParameter(
+            "Overwriting and appending are mutually exclusive operations."
+        )
+
+    if (
+        resolved_output
+        and os.path.exists(resolved_output)
+        and not (append or overwrite)
+    ):
+        raise FileOverwriteError(
+            "File exists. An append or overwrite operation must be selected."
+        )
+
+    return resolved_output, resolved_inputs
+
+
 @click.command(short_help="Export a dataset to MBTiles.")
 @click.argument(
     "files",
@@ -34,6 +102,9 @@ log = logging.getLogger(__name__)
     metavar="INPUT [OUTPUT]",
 )
 @output_opt
+@click.option(
+    "--append", default=False, is_flag=True, help="Append tiles to an existing file."
+)
 @overwrite_opt
 @click.option("--title", help="MBTiles dataset title.")
 @click.option("--description", help="MBTiles dataset description.")
@@ -123,6 +194,7 @@ def mbtiles(
     ctx,
     files,
     output,
+    append,
     overwrite,
     title,
     description,
@@ -161,7 +233,13 @@ def mbtiles(
     Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
 
     """
-    output, files = resolve_inout(files=files, output=output, overwrite=overwrite)
+    output, files = resolve_inout(
+        files=files,
+        output=output,
+        overwrite=overwrite,
+        append=append,
+        num_inputs=1,
+    )
     inputfile = files[0]
 
     log = logging.getLogger(__name__)
@@ -290,8 +368,9 @@ def mbtiles(
             pbar = None
 
         # Initialize the sqlite db.
-        if os.path.exists(output):
+        if os.path.exists(output) and overwrite:
             os.unlink(output)
+
         # workaround for bug here: https://bugs.python.org/issue27126
         sqlite3.connect(":memory:").close()
         conn = sqlite3.connect(output)
@@ -299,34 +378,62 @@ def mbtiles(
         def init_mbtiles():
             """Note: this closes over other local variables of the command function."""
             cur = conn.cursor()
-            cur.execute(
-                "CREATE TABLE tiles "
-                "(zoom_level integer, tile_column integer, "
-                "tile_row integer, tile_data blob);"
-            )
-            cur.execute("CREATE TABLE metadata (name text, value text);")
 
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("name", title)
-            )
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("type", layer_type),
-            )
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("version", "1.1")
-            )
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("description", description),
-            )
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);", ("format", img_ext)
-            )
-            cur.execute(
-                "INSERT INTO metadata (name, value) VALUES (?, ?);",
-                ("bounds", "%f,%f,%f,%f" % (west, south, east, north)),
-            )
+            if append:
+                cur.execute("SELECT * FROM metadata WHERE name = 'bounds';")
+                (
+                    _,
+                    bounds,
+                ) = cur.fetchone()
+
+                prev_west, prev_south, prev_east, prev_north = map(
+                    float, bounds.split(",")
+                )
+                new_west = min(west, prev_west)
+                new_south = min(south, prev_south)
+                new_east = max(east, prev_east)
+                new_north = max(north, prev_north)
+
+                cur.execute(
+                    "UPDATE metadata SET value = ? WHERE name = 'bounds';",
+                    ("%f,%f,%f,%f" % (new_west, new_south, new_east, new_north),),
+                )
+            else:
+                cur.execute(
+                    "CREATE TABLE IF NOT EXISTS tiles "
+                    "(zoom_level integer, tile_column integer, "
+                    "tile_row integer, tile_data blob);"
+                )
+                cur.execute(
+                    "CREATE UNIQUE INDEX idx_zcr ON tiles (zoom_level, tile_column, tile_row);"
+                )
+                cur.execute(
+                    "CREATE TABLE IF NOT EXISTS metadata (name text, value text);"
+                )
+
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES (?, ?);", ("name", title)
+                )
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                    ("type", layer_type),
+                )
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                    ("version", "1.1"),
+                )
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                    ("description", description),
+                )
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES (?, ?);",
+                    ("format", img_ext),
+                )
+                cur.execute(
+                    "INSERT INTO metadata (name, value) VALUES ('bounds', ?);",
+                    ("%f,%f,%f,%f" % (west, south, east, north),),
+                )
             conn.commit()
 
         def insert_results(tile, contents, img_ext=None, image_dump=None):
@@ -350,7 +457,7 @@ def mbtiles(
             log.info("Inserting tile: tile=%r", tile)
 
             cursor.execute(
-                "INSERT INTO tiles "
+                "INSERT OR REPLACE INTO tiles "
                 "(zoom_level, tile_column, tile_row, tile_data) "
                 "VALUES (?, ?, ?, ?);",
                 (tile.z, tile.x, tiley, sqlite3.Binary(contents)),

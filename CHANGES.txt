@@ -4,6 +4,7 @@ Changes
 1.5.0 (TBD)
 -----------
 
+- Support appending to or updating existing mbtiles files (#59).
 - Add an optional progress bar based on tqdm.
 - Add concurrent.futures and multiprocessing implementations of process_tiles()
   (#54).
