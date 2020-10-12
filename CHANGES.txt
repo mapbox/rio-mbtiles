@@ -1,8 +1,8 @@
 Changes
 =======
 
-1.5.0 (TBD)
------------
+1.5b1 (2020-10-12)
+------------------
 
 - Support appending to or updating existing mbtiles files (#59).
 - Add an optional progress bar based on tqdm.
