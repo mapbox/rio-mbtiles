@@ -78,6 +78,14 @@ Usage
 									  used as a cutline. Only source pixels within
 									  the cutline features will be exported.
 
+	  --oo NAME=VALUE                 Format driver-specific options to be used
+									  when accessing the input dataset. See the
+									  GDAL format driver documentation for more
+									  information.
+
+	  --wo NAME=VALUE                 See the GDAL warp options documentation for
+									  more information.
+
 	  --help                          Show this message and exit.
 
 Performance

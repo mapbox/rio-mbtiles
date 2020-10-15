@@ -1,4 +1,4 @@
-# concurrent.futures implementation
+"""concurrent.futures implementation"""
 
 import concurrent.futures
 from itertools import islice
@@ -23,14 +23,15 @@ def process_tiles(
     img_ext=None,
     image_dump=None,
     progress_bar=None,
-    **warp_options,
+    open_options=None,
+    warp_options=None,
 ):
     """Warp imagery into tiles and commit to mbtiles database.
     """
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=num_workers,
         initializer=init_worker,
-        initargs=(inputfile, base_kwds, resampling, warp_options),
+        initargs=(inputfile, base_kwds, resampling, open_options, warp_options),
     ) as executor:
         group = islice(tiles, BATCH_SIZE)
         futures = {executor.submit(process_tile, tile) for tile in group}

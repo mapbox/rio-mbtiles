@@ -13,7 +13,7 @@ import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.errors import FileOverwriteError
-from rasterio.rio.options import overwrite_opt, output_opt
+from rasterio.rio.options import overwrite_opt, output_opt, _cb_key_val
 from rasterio.warp import transform, transform_geom
 import shapely.affinity
 from shapely.geometry import mapping, shape
@@ -211,6 +211,22 @@ def extract_features(ctx, param, value):
     default=None,
     help="Path to a GeoJSON FeatureCollection to be used as a cutline. Only source pixels within the cutline features will be exported.",
 )
+@click.option(
+    "--oo",
+    "open_options",
+    metavar="NAME=VALUE",
+    multiple=True,
+    callback=_cb_key_val,
+    help="Format driver-specific options to be used when accessing the input dataset. See the GDAL format driver documentation for more information.",
+)
+@click.option(
+    "--wo",
+    "warp_options",
+    metavar="NAME=VALUE",
+    multiple=True,
+    callback=_cb_key_val,
+    help="See the GDAL warp options documentation for more information.",
+)
 @click.pass_context
 def mbtiles(
     ctx,
@@ -233,6 +249,8 @@ def mbtiles(
     implementation,
     progress_bar,
     cutline,
+    open_options,
+    warp_options,
 ):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
@@ -280,12 +298,10 @@ def mbtiles(
     else:
         from mbtiles.mp import process_tiles
 
-    warp_options = {}
-
     with ctx.obj["env"]:
 
         # Read metadata from the source dataset.
-        with rasterio.open(inputfile) as src:
+        with rasterio.open(inputfile, **open_options) as src:
 
             if dst_nodata is not None and (
                 src_nodata is None and src.profile.get("nodata") is None
@@ -564,7 +580,8 @@ def mbtiles(
                 img_ext=img_ext,
                 image_dump=image_dump,
                 progress_bar=pbar,
-                **warp_options
+                open_options=open_options,
+                warp_options=warp_options,
             )
 
             if pbar is not None:
