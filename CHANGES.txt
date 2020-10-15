@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.5b2 (2020-10-15)
+------------------
+
+- Add a --cutline option that takes an optional path to a GeoJSON
+  FeatureCollection (#62). No pixels outside the cutline shape(s) will be
+  exported and no tiles outside the cutline will be generated.
+
 1.5b1 (2020-10-12)
 ------------------
 

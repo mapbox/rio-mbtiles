@@ -53,3 +53,15 @@ def empty_data(tmpdir):
         with rasterio.open(out_filename, "w", **src.meta) as dst:
             pass
     return out_filename
+
+
+@pytest.fixture()
+def rgba_cutline_path():
+    """Path to a GeoJSON rhombus within the extents of RGBA.byte.tif"""
+    return os.path.join(os.path.dirname(__file__), "data/rgba_cutline.geojson")
+
+
+@pytest.fixture()
+def rgba_points_path():
+    """Path to a pair of GeoJSON points. This is not a valid cutline."""
+    return os.path.join(os.path.dirname(__file__), "data/rgba_points.geojson")

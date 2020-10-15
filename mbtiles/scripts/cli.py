@@ -1,5 +1,6 @@
-# Mbtiles command.
+"""mbtiles CLI"""
 
+import functools
 import logging
 import math
 import os
@@ -7,12 +8,18 @@ import sqlite3
 import sys
 
 import click
+from cligj.features import iter_features
 import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.errors import FileOverwriteError
 from rasterio.rio.options import overwrite_opt, output_opt
-from rasterio.warp import transform
+from rasterio.warp import transform, transform_geom
+import shapely.affinity
+from shapely.geometry import mapping, shape
+from shapely.ops import unary_union
+import shapely.wkt
+import supermercado.burntiles
 from tqdm import tqdm
 
 from mbtiles import __version__ as mbtiles_version
@@ -91,6 +98,14 @@ def resolve_inout(
         )
 
     return resolved_output, resolved_inputs
+
+
+def extract_features(ctx, param, value):
+    if value is not None:
+        with click.open_file(value, encoding="utf-8") as src:
+            return list(iter_features(iter(src)))
+    else:
+        return None
 
 
 @click.command(short_help="Export a dataset to MBTiles.")
@@ -189,6 +204,12 @@ def resolve_inout(
 @click.option(
     "--progress-bar", "-#", default=False, is_flag=True, help="Display progress bar."
 )
+@click.option(
+    "--cutline",
+    callback=extract_features,
+    default=None,
+    help="A GeoJSON feature collection to be used as a cutline. Only source pixels within the cutline features will be exported.",
+)
 @click.pass_context
 def mbtiles(
     ctx,
@@ -210,6 +231,7 @@ def mbtiles(
     rgba,
     implementation,
     progress_bar,
+    cutline,
 ):
     """Export a dataset to MBTiles (version 1.1) in a SQLite file.
 
@@ -233,6 +255,8 @@ def mbtiles(
     Python package: rio-mbtiles (https://github.com/mapbox/rio-mbtiles).
 
     """
+    log = logging.getLogger(__name__)
+
     output, files = resolve_inout(
         files=files,
         output=output,
@@ -241,8 +265,6 @@ def mbtiles(
         num_inputs=1,
     )
     inputfile = files[0]
-
-    log = logging.getLogger(__name__)
 
     if implementation == "cf" and sys.version_info < (3, 7):
         raise click.BadParameter(
@@ -256,6 +278,8 @@ def mbtiles(
         from mbtiles.cf import process_tiles
     else:
         from mbtiles.mp import process_tiles
+
+    warp_options = {}
 
     with ctx.obj["env"]:
 
@@ -284,6 +308,31 @@ def mbtiles(
             (west, east), (south, north) = transform(
                 src.crs, "EPSG:4326", src.bounds[::2], src.bounds[1::2]
             )
+
+            # cutlines must be transformed from CRS84 to src pixel/line
+            # coordinates and then formatted as WKT.
+            if cutline is not None:
+                geoms = [shape(f["geometry"]) for f in cutline]
+                union = unary_union(geoms)
+                if union.geom_type not in ("MultiPolygon", "Polygon"):
+                    raise click.ClickException("Unexpected cutline geometry type")
+                west, south, east, north = union.bounds
+                cutline_src = shape(
+                    transform_geom("OGC:CRS84", src.crs, mapping(union))
+                )
+                invtransform = ~src.transform
+                shapely_matrix = (
+                    invtransform.a,
+                    invtransform.b,
+                    invtransform.d,
+                    invtransform.e,
+                    invtransform.xoff,
+                    invtransform.yoff,
+                )
+                cutline_rev = shapely.affinity.affine_transform(
+                    cutline_src, shapely_matrix
+                )
+                warp_options["cutline"] = shapely.wkt.dumps(cutline_rev)
 
         # Resolve the minimum and maximum zoom levels for export.
         if zoom_levels:
@@ -348,10 +397,29 @@ def mbtiles(
             )
             ratio = min_ratio = raster_area / minzoom_tile_area
 
-            while ratio < 16:
-                est_num_tiles += len(
-                    list(mercantile.tiles(west, south, east, north, [zoom]))
+            # If given a cutline, we use its mercator area and the
+            # supermercado module to help estimate the number of output
+            # tiles.
+            if cutline:
+                geoms = [shape(f["geometry"]) for f in cutline]
+                union = unary_union(geoms)
+                cutline_mercator = transform_geom(
+                    "OGC:CRS84", "EPSG:3857", mapping(union)
                 )
+                min_ratio *= shape(cutline_mercator).area / raster_area
+                ratio = min_ratio
+                estimator = functools.partial(supermercado.burntiles.burn, cutline)
+            else:
+                estimator = functools.partial(
+                    mercantile.tiles, west, south, east, north
+                )
+
+            est_num_tiles = len(list(estimator(zoom)))
+            zoom += 1
+            ratio *= 4.0
+
+            while ratio < 16:
+                est_num_tiles += len(list(estimator(zoom)))
                 zoom += 1
                 ratio *= 4.0
 
@@ -466,9 +534,25 @@ def mbtiles(
         def commit_mbtiles():
             conn.commit()
 
+        if cutline:
+
+            def gen_tiles():
+                for zk in range(minzoom, maxzoom + 1):
+                    for arr in supermercado.burntiles.burn(cutline, zk):
+                        # Supermercado's numpy scalars must be cast to
+                        # ints.  Python's sqlite module does not do this
+                        # for us.
+                        yield mercantile.Tile(*(int(v) for v in arr))
+
+            tiles = gen_tiles()
+        else:
+            tiles = mercantile.tiles(
+                west, south, east, north, range(minzoom, maxzoom + 1)
+            )
+
         with conn:
             process_tiles(
-                mercantile.tiles(west, south, east, north, range(minzoom, maxzoom + 1)),
+                tiles,
                 init_mbtiles,
                 insert_results,
                 commit_mbtiles,
@@ -479,6 +563,7 @@ def mbtiles(
                 img_ext=img_ext,
                 image_dump=image_dump,
                 progress_bar=pbar,
+                **warp_options,
             )
 
             if pbar is not None:

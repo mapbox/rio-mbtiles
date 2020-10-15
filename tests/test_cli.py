@@ -402,3 +402,84 @@ def test_append_or_overwrite_required(tmpdir):
     runner = CliRunner()
     result = runner.invoke(main_group, ["mbtiles", "a.tif", str(outputfile)])
     assert result.exit_code == 1
+
+
+@pytest.mark.parametrize("filename", ["RGBA.byte.tif"])
+@pytest.mark.parametrize(
+    "impl",
+    [
+        pytest.param(
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python >= 3.7",
+            ),
+        ),
+        "mp",
+    ],
+)
+def test_cutline_progress_bar(tmpdir, data, rgba_cutline_path, impl, filename):
+    """rio-mbtiles accepts and uses a cutline"""
+    inputfile = str(data.join(filename))
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "-#",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "4..11",
+            "--rgba",
+            "--format",
+            "PNG",
+            "--cutline",
+            rgba_cutline_path,
+            inputfile,
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 0
+    assert "100%" in result.output
+
+
+@pytest.mark.parametrize("filename", ["RGBA.byte.tif"])
+@pytest.mark.parametrize(
+    "impl",
+    [
+        pytest.param(
+            "cf",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 7),
+                reason="c.f. implementation requires Python >= 3.7",
+            ),
+        ),
+        "mp",
+    ],
+)
+def test_invalid_cutline(tmpdir, data, rgba_points_path, impl, filename):
+    """Points cannot serve as a cutline"""
+    inputfile = str(data.join(filename))
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "-#",
+            "--implementation",
+            impl,
+            "--zoom-levels",
+            "4..11",
+            "--rgba",
+            "--format",
+            "PNG",
+            "--cutline",
+            rgba_points_path,
+            inputfile,
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 1

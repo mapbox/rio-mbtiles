@@ -16,31 +16,33 @@ with codecs_open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
 
-setup(name='rio-mbtiles',
-      version=version,
-      description=u"A Rasterio plugin command that exports MBTiles",
-      long_description=long_description,
-      classifiers=[],
-      keywords='',
-      author=u"Sean Gillies",
-      author_email='sean@mapbox.com',
-      url='https://github.com/mapbox/rio-mbtiles',
-      license='MIT',
-      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
-      include_package_data=True,
-      zip_safe=False,
-      python_requires='>=2.7.10',
-      install_requires=[
-          'click',
-          'mercantile',
-          'numpy>=1.10',
-          'rasterio~=1.0',
-          'tqdm~=4.0'
-      ],
-      extras_require={
-          'test': ['coveralls', 'pytest', 'pytest-cov'],
-      },
-      entry_points="""
+setup(
+    name="rio-mbtiles",
+    version=version,
+    description=u"A Rasterio plugin command that exports MBTiles",
+    long_description=long_description,
+    classifiers=[],
+    keywords="",
+    author=u"Sean Gillies",
+    author_email="sean@mapbox.com",
+    url="https://github.com/mapbox/rio-mbtiles",
+    license="MIT",
+    packages=find_packages(exclude=["ez_setup", "examples", "tests"]),
+    include_package_data=True,
+    zip_safe=False,
+    python_requires=">=2.7.10",
+    install_requires=[
+        "click",
+        "cligj>=0.5",
+        "mercantile",
+        "numpy>=1.10",
+        "rasterio~=1.0",
+        "shapely~=1.7.0",
+        "supermercado",
+        "tqdm~=4.0",
+    ],
+    extras_require={"test": ["coveralls", "pytest", "pytest-cov"]},
+    entry_points="""
       [rasterio.rio_plugins]
       mbtiles=mbtiles.scripts.cli:mbtiles
       """
