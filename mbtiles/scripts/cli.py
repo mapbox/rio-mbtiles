@@ -206,9 +206,10 @@ def extract_features(ctx, param, value):
 )
 @click.option(
     "--cutline",
+    type=click.Path(exists=True),
     callback=extract_features,
     default=None,
-    help="A GeoJSON feature collection to be used as a cutline. Only source pixels within the cutline features will be exported.",
+    help="Path to a GeoJSON FeatureCollection to be used as a cutline. Only source pixels within the cutline features will be exported.",
 )
 @click.pass_context
 def mbtiles(
