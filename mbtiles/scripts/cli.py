@@ -563,7 +563,7 @@ def mbtiles(
                 img_ext=img_ext,
                 image_dump=image_dump,
                 progress_bar=pbar,
-                **warp_options,
+                **warp_options
             )
 
             if pbar is not None:

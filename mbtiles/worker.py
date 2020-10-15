@@ -102,7 +102,7 @@ def process_tile(tile):
                 dst_nodata=dst_nodata,
                 num_threads=2,
                 resampling=resampling,
-                **warp_options,
+                **warp_options
             )
 
         return tile, memfile.read()
