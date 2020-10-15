@@ -27,7 +27,7 @@ def process_tiles(
     img_ext=None,
     image_dump=None,
     progress_bar=None,
-    **warp_options,
+    **warp_options
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
