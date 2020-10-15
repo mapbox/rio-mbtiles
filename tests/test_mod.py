@@ -22,6 +22,7 @@ def test_process_tile(data, filename, tile):
             "crs": "EPSG:3857",
         },
         "nearest",
+        {},
     )
     t, contents = mbtiles.worker.process_tile(tile)
     assert t.x == tile.x

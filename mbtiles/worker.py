@@ -19,12 +19,12 @@ TILES_CRS = "EPSG:3857"
 log = logging.getLogger(__name__)
 
 
-def init_worker(path, profile, resampling_method):
-    global base_kwds, filename, resampling
+def init_worker(path, profile, resampling_method, kwds):
+    global base_kwds, filename, resampling, warp_options
     resampling = Resampling[resampling_method]
-    # src = rasterio.open(path)
     base_kwds = profile.copy()
     filename = path
+    warp_options = kwds.copy() if kwds is not None else {}
 
 
 def process_tile(tile):
@@ -33,6 +33,8 @@ def process_tile(tile):
     Parameters
     ----------
     tile : mercantile.Tile
+    warp_options : Mapping
+        GDAL warp options as keyword arguments.
 
     Returns
     -------
@@ -43,7 +45,7 @@ def process_tile(tile):
         Image bytes corresponding to the tile.
 
     """
-    global base_kwds, resampling, filename
+    global base_kwds, resampling, filename, warp_options
 
     src = rasterio.open(filename)
 
@@ -100,6 +102,7 @@ def process_tile(tile):
                 dst_nodata=dst_nodata,
                 num_threads=2,
                 resampling=resampling,
+                **warp_options
             )
 
         return tile, memfile.read()
