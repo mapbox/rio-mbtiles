@@ -23,6 +23,7 @@ def test_process_tile(data, filename, tile):
         },
         "nearest",
         {},
+        {},
     )
     t, contents = mbtiles.worker.process_tile(tile)
     assert t.x == tile.x

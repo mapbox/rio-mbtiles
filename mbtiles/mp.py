@@ -1,4 +1,4 @@
-# multiprocessing Pool implementation
+"""multiprocessing Pool implementation"""
 
 from multiprocessing import Pool
 import warnings
@@ -27,14 +27,15 @@ def process_tiles(
     img_ext=None,
     image_dump=None,
     progress_bar=None,
-    **warp_options
+    open_options=None,
+    warp_options=None,
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
     pool = Pool(
         num_workers,
         init_worker,
-        (inputfile, base_kwds, resampling, warp_options),
+        (inputfile, base_kwds, resampling, open_options, warp_options),
         100 * BATCH_SIZE,
     )
 

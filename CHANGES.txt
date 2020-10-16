@@ -4,6 +4,9 @@ Changes
 1.5b2 (2020-10-15)
 ------------------
 
+- Add --oo (open) options and --wo (warp) options like those of gdalwarp. These
+  allow control over, for example, overview level of TMS datasets and the
+  number of threads used internally by GDAL's warper.
 - Add a --cutline option that takes an optional path to a GeoJSON
   FeatureCollection (#62). No pixels outside the cutline shape(s) will be
   exported and no tiles outside the cutline will be generated.
