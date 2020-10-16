@@ -12,10 +12,6 @@ from rasterio.windows import from_bounds as window_from_bounds
 import mercantile
 import rasterio
 
-
-# base_kwds = None
-# src = None
-
 TILES_CRS = "EPSG:3857"
 
 log = logging.getLogger(__name__)
