@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.5b3 (2020-10-28)
+------------------
+
+- Add a --covers option, taking a quadkey, which limits the output to tiles
+  that cover the quadkey's tile (#66).
+
 1.5b2 (2020-10-16)
 ------------------
 

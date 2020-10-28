@@ -483,3 +483,28 @@ def test_invalid_cutline(tmpdir, data, rgba_points_path, impl, filename):
         ],
     )
     assert result.exit_code == 1
+
+
+@pytest.mark.parametrize(("source", "quadkey", "zooms", "exp_num_results"), [("RGB.byte.tif", "0320", "4..4", 1), ("RGB.byte.tif", "032022", "6..6", 0)])
+def test_covers(tmpdir, data, source, quadkey, zooms, exp_num_results):
+    inputfile = str(data.join(source))
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group,
+        [
+            "mbtiles",
+            "--zoom-levels",
+            zooms,
+            "--covers",
+            quadkey,
+            inputfile,
+            outputfile,
+        ],
+    )
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    results = cur.fetchall()
+    assert len(results) == exp_num_results
