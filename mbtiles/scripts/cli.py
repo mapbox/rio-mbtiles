@@ -421,13 +421,14 @@ def mbtiles(
                 )
 
             est_num_tiles = len(list(estimator(zoom)))
-            zoom += 1
             ratio *= 4.0
 
-            while ratio < 16:
-                est_num_tiles += len(list(estimator(zoom)))
+            while zoom < maxzoom and ratio < 16:
                 zoom += 1
+                est_num_tiles += len(list(estimator(zoom)))
                 ratio *= 4.0
+            else:
+                zoom += 1
 
             est_num_tiles += int(
                 sum(
