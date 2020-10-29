@@ -41,8 +41,9 @@ Usage
       -o, --output PATH               Path to output file (optional alternative to
                                       a positional arg).
 
-      --append                        Append tiles to an existing file.
-      --overwrite                     Always overwrite an existing output file.
+      --append / --overwrite          Append tiles to an existing file or
+                                      overwrite.
+
       --title TEXT                    MBTiles dataset title.
       --description TEXT              MBTiles dataset description.
       --overlay                       Export as an overlay (the default).
@@ -74,6 +75,7 @@ Usage
                                       (mp).
 
       -#, --progress-bar              Display progress bar.
+      --covers TEXT                   Restrict mbtiles output to cover a quadkey
       --cutline PATH                  Path to a GeoJSON FeatureCollection to be
                                       used as a cutline. Only source pixels within
                                       the cutline features will be exported.

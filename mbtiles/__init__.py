@@ -3,7 +3,7 @@
 import sys
 import warnings
 
-__version__ = "1.5b3"
+__version__ = "1.5b4"
 
 if sys.version_info < (3, 7):
     warnings.warn(

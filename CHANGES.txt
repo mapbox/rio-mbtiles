@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.5b4 (2020-10-29)
+------------------
+
+- Consolidate --append/--overwrite into one option and make appending the
+  default.
+
 1.5b3 (2020-10-28)
 ------------------
 
