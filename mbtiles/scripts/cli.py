@@ -13,7 +13,7 @@ import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.errors import FileOverwriteError
-from rasterio.rio.options import overwrite_opt, output_opt, _cb_key_val
+from rasterio.rio.options import output_opt, _cb_key_val
 from rasterio.warp import transform, transform_geom
 import shapely.affinity
 from shapely.geometry import mapping, shape
@@ -83,20 +83,6 @@ def resolve_inout(
         elif len(resolved_inputs) > num_inputs:
             raise click.BadParameter("Too many inputs")
 
-    if overwrite and append:
-        raise click.BadParameter(
-            "Overwriting and appending are mutually exclusive operations."
-        )
-
-    if (
-        resolved_output
-        and os.path.exists(resolved_output)
-        and not (append or overwrite)
-    ):
-        raise FileOverwriteError(
-            "File exists. An append or overwrite operation must be selected."
-        )
-
     return resolved_output, resolved_inputs
 
 
@@ -118,9 +104,11 @@ def extract_features(ctx, param, value):
 )
 @output_opt
 @click.option(
-    "--append", default=False, is_flag=True, help="Append tiles to an existing file."
+    "--append/--overwrite",
+    default=True,
+    is_flag=True,
+    help="Append tiles to an existing file or overwrite.",
 )
-@overwrite_opt
 @click.option("--title", help="MBTiles dataset title.")
 @click.option("--description", help="MBTiles dataset description.")
 @click.option(
@@ -233,7 +221,6 @@ def mbtiles(
     files,
     output,
     append,
-    overwrite,
     title,
     description,
     layer_type,
@@ -277,11 +264,7 @@ def mbtiles(
     log = logging.getLogger(__name__)
 
     output, files = resolve_inout(
-        files=files,
-        output=output,
-        overwrite=overwrite,
-        append=append,
-        num_inputs=1,
+        files=files, output=output, overwrite=not (append), append=append, num_inputs=1,
     )
     inputfile = files[0]
 
@@ -453,7 +436,12 @@ def mbtiles(
             pbar = None
 
         # Initialize the sqlite db.
-        if os.path.exists(output) and overwrite:
+        output_exists = os.path.exists(output)
+        if append:
+            appending = output_exists
+        elif output_exists:
+            appending = False
+            log.info("Overwrite mode chosen, unlinking output file.")
             os.unlink(output)
 
         # workaround for bug here: https://bugs.python.org/issue27126
@@ -464,7 +452,7 @@ def mbtiles(
             """Note: this closes over other local variables of the command function."""
             cur = conn.cursor()
 
-            if append:
+            if appending:
                 cur.execute("SELECT * FROM metadata WHERE name = 'bounds';")
                 (
                     _,

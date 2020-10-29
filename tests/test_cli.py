@@ -378,15 +378,6 @@ def test_appending_export_count(
     assert len(results) == exp_num_tiles
 
 
-def test_mutually_exclusive_operations():
-    """--overwrite and --append are mutually exclusive"""
-    runner = CliRunner()
-    result = runner.invoke(
-        main_group, ["mbtiles", "--append", "--overwrite", "foo.tif", "foo.mbtiles"]
-    )
-    assert result.exit_code == 2
-
-
 @pytest.mark.parametrize("inputfiles", [[], ["a.tif", "b.tif"]])
 def test_input_required(inputfiles):
     """We require exactly one input file"""
