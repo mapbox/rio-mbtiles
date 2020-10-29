@@ -192,6 +192,7 @@ def extract_features(ctx, param, value):
 @click.option(
     "--progress-bar", "-#", default=False, is_flag=True, help="Display progress bar."
 )
+@click.option("--covers", help="Restrict mbtiles output to cover a quadkey")
 @click.option(
     "--cutline",
     type=click.Path(exists=True),
@@ -235,6 +236,7 @@ def mbtiles(
     rgba,
     implementation,
     progress_bar,
+    covers,
     cutline,
     open_options,
     warp_options,
@@ -333,6 +335,10 @@ def mbtiles(
                     cutline_src, shapely_matrix
                 )
                 warp_options["cutline"] = shapely.wkt.dumps(cutline_rev)
+
+        if covers is not None:
+            covers_tile = mercantile.quadkey_to_tile(covers)
+            west, south, east, north = mercantile.bounds(covers_tile)
 
         # Resolve the minimum and maximum zoom levels for export.
         if zoom_levels:
