@@ -125,7 +125,7 @@ def extract_features(ctx, param, value):
     "-f",
     "--format",
     "img_format",
-    type=click.Choice(["JPEG", "PNG"]),
+    type=click.Choice(["JPEG", "PNG", "WEBP"]),
     default="JPEG",
     help="Tile image format.",
 )
@@ -374,7 +374,7 @@ def mbtiles(
             }
         )
 
-        img_ext = "jpg" if img_format.lower() == "jpeg" else "png"
+        img_ext = "jpg" if img_format.lower() == "jpeg" else img_format.lower()
 
         # Constrain bounds.
         EPS = 1.0e-10
