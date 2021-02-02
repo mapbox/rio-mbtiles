@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.5.1 (2021-02-02)
+------------------
+
+- Add --co (creation) options for fine control over quality of tiles using any
+  of a format's valid GDAL creation options (#73).
+- Add support for WebP tiles (#72).
+
 1.5.0 (2020-10-30)
 ------------------
 

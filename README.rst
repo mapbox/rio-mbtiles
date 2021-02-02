@@ -6,8 +6,8 @@ rio-mbtiles
 
 A plugin for the
 `Rasterio CLI <https://github.com/mapbox/rasterio/blob/master/docs/cli.rst>`__
-that exports a raster dataset to the MBTiles (version 1.1) format. Features
-include automatic reprojection and parallel processing.
+that exports a raster dataset to the MBTiles (version 1.3) format. Features
+include automatic reprojection and concurrent tile generation.
 
 Usage
 -----
@@ -17,15 +17,21 @@ Usage
     $ rio mbtiles --help
     Usage: rio mbtiles [OPTIONS] INPUT [OUTPUT]
 
-      Export a dataset to MBTiles (version 1.1) in a SQLite file.
+      Export a dataset to MBTiles (version 1.3) in a SQLite file.
 
       The input dataset may have any coordinate reference system. It must have
       at least three bands, which will be become the red, blue, and green bands
       of the output image tiles.
 
       An optional fourth alpha band may be copied to the output tiles by using
-      the --rgba option in combination with the PNG format. This option requires
-      that the input dataset has at least 4 bands.
+      the --rgba option in combination with the PNG or WEBP formats. This option
+      requires that the input dataset has at least 4 bands.
+
+      The default quality for JPEG and WEBP output (possible range: 10-100) is
+      75. This value can be changed with the use of the QUALITY creation option,
+      e.g. `--co QUALITY=90`.  The default zlib compression level for PNG output
+      (possible range: 1-9) is 6. This value can be changed like `--co
+      ZLEVEL=8`.  Lossless WEBP can be chosen with `--co LOSSLESS=TRUE`.
 
       If no zoom levels are specified, the defaults are the zoom levels nearest
       to the one at which one tile may contain the entire source dataset.
@@ -48,7 +54,7 @@ Usage
       --description TEXT              MBTiles dataset description.
       --overlay                       Export as an overlay (the default).
       --baselayer                     Export as a base layer.
-      -f, --format [JPEG|PNG]         Tile image format.
+      -f, --format [JPEG|PNG|WEBP]    Tile image format.
       --tile-size INTEGER             Width and height of individual square tiles
                                       to create.  [default: 256]
 
@@ -69,7 +75,7 @@ Usage
                                       nearest]
 
       --version                       Show the version and exit.
-      --rgba                          Select RGBA output. For PNG only.
+      --rgba                          Select RGBA output. For PNG or WEBP only.
       --implementation [cf|mp]        Concurrency implementation. Use
                                       concurrent.futures (cf) or multiprocessing
                                       (mp).
@@ -84,6 +90,10 @@ Usage
                                       when accessing the input dataset. See the
                                       GDAL format driver documentation for more
                                       information.
+
+      --co, --profile NAME=VALUE      Driver specific creation options.See the
+                                      documentation for the selected output driver
+                                      for more information.
 
       --wo NAME=VALUE                 See the GDAL warp options documentation for
                                       more information.
