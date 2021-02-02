@@ -91,7 +91,7 @@ Usage
                                       GDAL format driver documentation for more
                                       information.
 
-      --co, --profile NAME=VALUE      Driver specific creation options.See the
+      --co, --profile NAME=VALUE      Driver specific creation options. See the
                                       documentation for the selected output driver
                                       for more information.
 
