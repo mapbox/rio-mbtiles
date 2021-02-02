@@ -13,7 +13,7 @@ import mercantile
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.errors import FileOverwriteError
-from rasterio.rio.options import output_opt, _cb_key_val
+from rasterio.rio.options import creation_options, output_opt, _cb_key_val
 from rasterio.warp import transform, transform_geom
 import shapely.affinity
 from shapely.geometry import mapping, shape
@@ -180,7 +180,7 @@ def extract_features(ctx, param, value):
 )
 @click.version_option(version=mbtiles_version, message="%(version)s")
 @click.option(
-    "--rgba", default=False, is_flag=True, help="Select RGBA output. For PNG only."
+    "--rgba", default=False, is_flag=True, help="Select RGBA output. For PNG or WEBP only."
 )
 @click.option(
     "--implementation",
@@ -208,6 +208,7 @@ def extract_features(ctx, param, value):
     callback=_cb_key_val,
     help="Format driver-specific options to be used when accessing the input dataset. See the GDAL format driver documentation for more information.",
 )
+@creation_options
 @click.option(
     "--wo",
     "warp_options",
@@ -239,17 +240,25 @@ def mbtiles(
     covers,
     cutline,
     open_options,
+    creation_options,
     warp_options,
 ):
-    """Export a dataset to MBTiles (version 1.1) in a SQLite file.
+    """Export a dataset to MBTiles (version 1.3) in a SQLite file.
 
     The input dataset may have any coordinate reference system. It must
     have at least three bands, which will be become the red, blue, and
     green bands of the output image tiles.
 
     An optional fourth alpha band may be copied to the output tiles by
-    using the --rgba option in combination with the PNG format. This
-    option requires that the input dataset has at least 4 bands.
+    using the --rgba option in combination with the PNG or WEBP formats.
+    This option requires that the input dataset has at least 4 bands.
+
+    The default quality for JPEG and WEBP output (possible range:
+    10-100) is 75. This value can be changed with the use of the QUALITY
+    creation option, e.g. `--co QUALITY=90`.  The default zlib
+    compression level for PNG output (possible range: 1-9) is 6. This
+    value can be changed like `--co ZLEVEL=8`.  Lossless WEBP can be
+    chosen with `--co LOSSLESS=TRUE`.
 
     If no zoom levels are specified, the defaults are the zoom levels
     nearest to the one at which one tile may contain the entire source
@@ -576,6 +585,7 @@ def mbtiles(
                 image_dump=image_dump,
                 progress_bar=pbar,
                 open_options=open_options,
+                creation_options=creation_options,
                 warp_options=warp_options,
             )
 

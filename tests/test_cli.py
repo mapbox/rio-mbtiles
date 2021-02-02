@@ -18,7 +18,7 @@ def test_cli_help():
     runner = CliRunner()
     result = runner.invoke(main_group, ["mbtiles", "--help"])
     assert result.exit_code == 0
-    assert "Export a dataset to MBTiles (version 1.1)" in result.output
+    assert "Export a dataset to MBTiles (version 1.3)" in result.output
 
 
 @pytest.mark.skipif("sys.version_info >= (3, 7)", reason="Test requires Python < 3.7")

@@ -17,13 +17,14 @@ TILES_CRS = "EPSG:3857"
 log = logging.getLogger(__name__)
 
 
-def init_worker(path, profile, resampling_method, open_opts, warp_opts):
-    global base_kwds, filename, resampling, open_options, warp_options
+def init_worker(path, profile, resampling_method, open_opts=None, warp_opts=None, creation_opts=None):
+    global base_kwds, filename, resampling, open_options, warp_options, creation_options
     resampling = Resampling[resampling_method]
     base_kwds = profile.copy()
     filename = path
     open_options = open_opts.copy() if open_opts is not None else {}
     warp_options = warp_opts.copy() if warp_opts is not None else {}
+    creation_options = creation_opts.copy() if creation_opts is not None else {}
 
 
 def process_tile(tile):
@@ -44,7 +45,7 @@ def process_tile(tile):
         Image bytes corresponding to the tile.
 
     """
-    global base_kwds, resampling, filename, open_options, warp_options
+    global base_kwds, resampling, filename, open_options, warp_options, creation_options
 
     with rasterio.open(filename, **open_options) as src:
 
@@ -53,6 +54,7 @@ def process_tile(tile):
         lrx, lry = mercantile.xy(*mercantile.ul(tile.x + 1, tile.y + 1, tile.z))
 
         kwds = base_kwds.copy()
+        kwds.update(**creation_options)
         kwds["transform"] = transform_from_bounds(
             ulx, lry, lrx, uly, kwds["width"], kwds["height"]
         )
