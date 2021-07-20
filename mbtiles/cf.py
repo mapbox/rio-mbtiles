@@ -26,13 +26,22 @@ def process_tiles(
     open_options=None,
     warp_options=None,
     creation_options=None,
+    exclude_empty_tiles=True,
 ):
     """Warp imagery into tiles and commit to mbtiles database.
     """
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=num_workers,
         initializer=init_worker,
-        initargs=(inputfile, base_kwds, resampling, open_options, warp_options, creation_options),
+        initargs=(
+            inputfile,
+            base_kwds,
+            resampling,
+            open_options,
+            warp_options,
+            creation_options,
+            exclude_empty_tiles,
+        ),
     ) as executor:
         group = islice(tiles, BATCH_SIZE)
         futures = {executor.submit(process_tile, tile) for tile in group}

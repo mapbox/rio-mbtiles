@@ -30,13 +30,22 @@ def process_tiles(
     open_options=None,
     warp_options=None,
     creation_options=None,
+    exclude_empty_tiles=True,
 ):
     """Warp raster into tiles and commit tiles to mbtiles database.
     """
     pool = Pool(
         num_workers,
         init_worker,
-        (inputfile, base_kwds, resampling, open_options, warp_options, creation_options),
+        (
+            inputfile,
+            base_kwds,
+            resampling,
+            open_options,
+            warp_options,
+            creation_options,
+            exclude_empty_tiles,
+        ),
         100 * BATCH_SIZE,
     )
 

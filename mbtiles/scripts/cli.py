@@ -12,7 +12,6 @@ from cligj.features import iter_features
 import mercantile
 import rasterio
 from rasterio.enums import Resampling
-from rasterio.errors import FileOverwriteError
 from rasterio.rio.options import creation_options, output_opt, _cb_key_val
 from rasterio.warp import transform, transform_geom
 import shapely.affinity
@@ -217,6 +216,12 @@ def extract_features(ctx, param, value):
     callback=_cb_key_val,
     help="See the GDAL warp options documentation for more information.",
 )
+@click.option(
+    "--exclude-empty-tiles/--include-empty-tiles",
+    default=True,
+    is_flag=True,
+    help="Whether to exclude or include empty tiles from the output.",
+)
 @click.pass_context
 def mbtiles(
     ctx,
@@ -242,6 +247,7 @@ def mbtiles(
     open_options,
     creation_options,
     warp_options,
+    exclude_empty_tiles,
 ):
     """Export a dataset to MBTiles (version 1.3) in a SQLite file.
 
@@ -587,6 +593,7 @@ def mbtiles(
                 open_options=open_options,
                 creation_options=creation_options,
                 warp_options=warp_options,
+                exclude_empty_tiles=exclude_empty_tiles,
             )
 
             if pbar is not None:
