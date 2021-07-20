@@ -14,7 +14,6 @@ Usage
 
 .. code-block:: console
 
-    $ rio mbtiles --help
     Usage: rio mbtiles [OPTIONS] INPUT [OUTPUT]
 
       Export a dataset to MBTiles (version 1.3) in a SQLite file.
@@ -70,7 +69,7 @@ Usage
 
       --src-nodata FLOAT              Manually override source nodata
       --dst-nodata FLOAT              Manually override destination nodata
-      --resampling [nearest|bilinear|cubic|cubic_spline|lanczos|average|mode|gauss|max|min|med|q1|q3]
+      --resampling [nearest|bilinear|cubic|cubic_spline|lanczos|average|mode|gauss|max|min|med|q1|q3|rms]
                                       Resampling method to use.  [default:
                                       nearest]
 
@@ -97,6 +96,10 @@ Usage
 
       --wo NAME=VALUE                 See the GDAL warp options documentation for
                                       more information.
+
+      --exclude-empty-tiles / --include-empty-tiles
+                                      Whether to exclude or include empty tiles
+                                      from the output.
 
       --help                          Show this message and exit.
 
