@@ -1,6 +1,12 @@
 Changes
 =======
 
+1.6a1 (TBD)
+-----------
+
+- Add an option to include empty tiles in the output mbtiles dataset.
+- Add an alpha channel for RGB input when the --rgba option is used (#76).
+
 1.5.1 (2021-02-02)
 ------------------
 

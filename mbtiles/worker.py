@@ -17,14 +17,23 @@ TILES_CRS = "EPSG:3857"
 log = logging.getLogger(__name__)
 
 
-def init_worker(path, profile, resampling_method, open_opts=None, warp_opts=None, creation_opts=None):
-    global base_kwds, filename, resampling, open_options, warp_options, creation_options
+def init_worker(
+    path,
+    profile,
+    resampling_method,
+    open_opts=None,
+    warp_opts=None,
+    creation_opts=None,
+    exclude_empties=True,
+):
+    global base_kwds, filename, resampling, open_options, warp_options, creation_options, exclude_empty_tiles
     resampling = Resampling[resampling_method]
     base_kwds = profile.copy()
     filename = path
     open_options = open_opts.copy() if open_opts is not None else {}
     warp_options = warp_opts.copy() if warp_opts is not None else {}
     creation_options = creation_opts.copy() if creation_opts is not None else {}
+    exclude_empty_tiles = exclude_empties
 
 
 def process_tile(tile):
@@ -45,7 +54,7 @@ def process_tile(tile):
         Image bytes corresponding to the tile.
 
     """
-    global base_kwds, resampling, filename, open_options, warp_options, creation_options
+    global base_kwds, resampling, filename, open_options, warp_options, creation_options, exclude_empty_tiles
 
     with rasterio.open(filename, **open_options) as src:
 
@@ -60,6 +69,23 @@ def process_tile(tile):
         )
         src_nodata = kwds.pop("src_nodata", None)
         dst_nodata = kwds.pop("dst_nodata", None)
+
+        src_alpha = None
+        dst_alpha = None
+        add_alpha = False
+        bindexes = None
+
+        if kwds["count"] == 4:
+            if src.count == 4:
+                src_alpha = 4
+                dst_alpha = 4
+                bindexes = [1, 2, 3, 4]
+            else:
+                kwds["count"] = 3
+                bindexes = [1, 2, 3]
+                add_alpha = True
+        else:
+            bindexes = [1, 2, 3]
 
         warnings.simplefilter("ignore")
 
@@ -87,7 +113,10 @@ def process_tile(tile):
                     tile_window = adjusted_tile_window.round_offsets().round_shape()
 
                     # if no data in window, skip processing the tile
-                    if not src.read_masks(1, window=tile_window).any():
+                    if (
+                        exclude_empty_tiles
+                        and not src.read_masks(1, window=tile_window).any()
+                    ):
                         return tile, None
 
                 except ValueError:
@@ -99,13 +128,29 @@ def process_tile(tile):
                 num_threads = int(warp_options.pop("num_threads", 2))
 
                 reproject(
-                    rasterio.band(src, tmp.indexes),
-                    rasterio.band(tmp, tmp.indexes),
+                    rasterio.band(src, bindexes),
+                    rasterio.band(tmp, bindexes),
                     src_nodata=src_nodata,
                     dst_nodata=dst_nodata,
+                    src_alpha=src_alpha,
+                    dst_alpha=dst_alpha,
                     num_threads=num_threads,
                     resampling=resampling,
                     **warp_options
                 )
+
+                if len(bindexes) == 3 and add_alpha:
+
+                    with MemoryFile() as second_memfile:
+                        second_profile = kwds.copy()
+                        second_profile["count"] = 4
+
+                        with second_memfile.open(**second_profile) as second_tmp:
+                            second_tmp.write(
+                                tmp.read(indexes=[1, 2, 3]), indexes=[1, 2, 3]
+                            )
+                            second_tmp.write(tmp.dataset_mask(), indexes=4)
+
+                        return tile, second_memfile.read()
 
             return tile, memfile.read()

@@ -202,6 +202,21 @@ def test_skip_empty(tmpdir, empty_data):
     assert len(cur.fetchall()) == 0
 
 
+def test_include_empty(tmpdir, empty_data):
+    """This file has the same shape as RGB.byte.tif, but no data."""
+    inputfile = empty_data
+    outputfile = str(tmpdir.join("export.mbtiles"))
+    runner = CliRunner()
+    result = runner.invoke(
+        main_group, ["mbtiles", "--include-empty-tiles", inputfile, outputfile]
+    )
+    assert result.exit_code == 0
+    conn = sqlite3.connect(outputfile)
+    cur = conn.cursor()
+    cur.execute("select * from tiles")
+    assert len(cur.fetchall()) == 6
+
+
 def test_invalid_format_rgba(tmpdir, empty_data):
     """--format JPEG --rgba is not allowed"""
     inputfile = empty_data
@@ -213,7 +228,7 @@ def test_invalid_format_rgba(tmpdir, empty_data):
     assert result.exit_code == 2
 
 
-@pytest.mark.parametrize("filename", ["RGBA.byte.tif"])
+@pytest.mark.parametrize("filename", ["RGBA.byte.tif", "RGB.byte.tif"])
 def test_rgba_png(tmpdir, data, filename):
     inputfile = str(data.join(filename))
     outputfile = str(tmpdir.join("export.mbtiles"))
