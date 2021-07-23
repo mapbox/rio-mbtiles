@@ -374,7 +374,7 @@ def mbtiles(
             else:
                 count = 4
         else:
-            count = 3
+            count = src.count
 
         # Parameters for creation of tile images.
         base_kwds.update(

@@ -1,6 +1,13 @@
 Changes
 =======
 
+1.6a2 (2021-07-23)
+------------------
+
+- Turn on latent support for 8-bit input and output.
+- Rely on GDAL's warper to create the alpha band for RGB input when --rgba is
+  used.
+
 1.6a1 (2021-07-20)
 ------------------
 

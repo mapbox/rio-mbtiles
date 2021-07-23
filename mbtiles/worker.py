@@ -72,20 +72,18 @@ def process_tile(tile):
 
         src_alpha = None
         dst_alpha = None
-        add_alpha = False
         bindexes = None
 
         if kwds["count"] == 4:
+            bindexes = [1, 2, 3]
+            dst_alpha = 4
+
             if src.count == 4:
                 src_alpha = 4
-                dst_alpha = 4
-                bindexes = [1, 2, 3, 4]
             else:
-                kwds["count"] = 3
-                bindexes = [1, 2, 3]
-                add_alpha = True
+                kwds["count"] = 4
         else:
-            bindexes = [1, 2, 3]
+            bindexes = list(range(1, kwds["count"] + 1))
 
         warnings.simplefilter("ignore")
 
@@ -138,19 +136,5 @@ def process_tile(tile):
                     resampling=resampling,
                     **warp_options
                 )
-
-                if len(bindexes) == 3 and add_alpha:
-
-                    with MemoryFile() as second_memfile:
-                        second_profile = kwds.copy()
-                        second_profile["count"] = 4
-
-                        with second_memfile.open(**second_profile) as second_tmp:
-                            second_tmp.write(
-                                tmp.read(indexes=[1, 2, 3]), indexes=[1, 2, 3]
-                            )
-                            second_tmp.write(tmp.dataset_mask(), indexes=4)
-
-                        return tile, second_memfile.read()
 
             return tile, memfile.read()
