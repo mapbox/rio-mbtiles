@@ -5,9 +5,9 @@ env:
     - PIP_WHEEL_DIR=$HOME/.cache/pip
     - PIP_FIND_LINKS=$HOME/.cache/pip
 python:
-  - "2.7.15"
   - "3.6"
-  - "3.7"
+  - "3.8"
+  - "3.9"
 cache:
   directories:
     - $HOME/.cache/pip/
