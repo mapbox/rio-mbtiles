@@ -1,6 +1,10 @@
 rio-mbtiles
 ===========
 
+.. image:: https://github.com/mapbox/rio-mbtiles/actions/workflows/python-package.yml/badge.svg
+   :alt: Python Workflow
+   :target: https://github.com/mapbox/rio-mbtiles/actions/workflows/python-package.yml
+
 .. image:: https://travis-ci.org/mapbox/rio-mbtiles.svg
    :target: https://travis-ci.org/mapbox/rio-mbtiles
 
