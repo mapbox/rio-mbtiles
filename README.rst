@@ -1,8 +1,17 @@
 rio-mbtiles
 ===========
 
+.. image:: https://github.com/mapbox/rio-mbtiles/actions/workflows/python-package.yml/badge.svg
+   :alt: Python Workflow
+   :target: https://github.com/mapbox/rio-mbtiles/actions/workflows/python-package.yml
+
 .. image:: https://travis-ci.org/mapbox/rio-mbtiles.svg
    :target: https://travis-ci.org/mapbox/rio-mbtiles
+
+
+.. image:: https://img.shields.io/pypi/v/rio-mbtiles.svg
+   :target: https://pypi.python.org/pypi/rio-mbtiles
+
 
 A plugin for the
 `Rasterio CLI <https://github.com/mapbox/rasterio/blob/master/docs/cli.rst>`__
