@@ -8,6 +8,11 @@ rio-mbtiles
 .. image:: https://travis-ci.org/mapbox/rio-mbtiles.svg
    :target: https://travis-ci.org/mapbox/rio-mbtiles
 
+
+.. image:: https://img.shields.io/pypi/v/rio-mbtiles.svg
+   :target: https://pypi.python.org/pypi/rio-mbtiles
+
+
 A plugin for the
 `Rasterio CLI <https://github.com/mapbox/rasterio/blob/master/docs/cli.rst>`__
 that exports a raster dataset to the MBTiles (version 1.3) format. Features
