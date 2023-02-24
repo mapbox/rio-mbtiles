@@ -26,6 +26,7 @@ def process_tiles(
     resampling=None,
     img_ext=None,
     image_dump=None,
+    tile_scheme=None,
     progress_bar=None,
     open_options=None,
     warp_options=None,
@@ -62,7 +63,7 @@ def process_tiles(
             if item is None:
                 break
             tile, contents = item
-            insert_results(tile, contents, img_ext=img_ext, image_dump=image_dump)
+            insert_results(tile, contents, img_ext=img_ext, image_dump=image_dump, tile_scheme=tile_scheme)
 
         commit_mbtiles()
 
