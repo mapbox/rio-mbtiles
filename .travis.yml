@@ -4,10 +4,14 @@ env:
   global:
     - PIP_WHEEL_DIR=$HOME/.cache/pip
     - PIP_FIND_LINKS=$HOME/.cache/pip
-python:
-  - "2.7.15"
-  - "3.6"
-  - "3.7"
+matrix:
+  fast_finish: true
+  include:
+    - python:  '3.10'
+      dist:  bionic
+    - python:  '3.9'
+    - python:  '3.8'
+
 cache:
   directories:
     - $HOME/.cache/pip/
