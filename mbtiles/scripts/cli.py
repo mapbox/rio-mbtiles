@@ -150,6 +150,13 @@ def extract_features(ctx, param, value):
     help="A directory into which image tiles will be optionally " "dumped.",
 )
 @click.option(
+    "--scheme",
+    "tile_scheme",
+    type=click.Choice(["xyz", "tms"]),
+    default="tms",
+    help="Influences the y direction of the tile coordinates in file names, when `--image-dump` is used.",
+)
+@click.option(
     "-j",
     "num_workers",
     type=int,
@@ -235,6 +242,7 @@ def mbtiles(
     tile_size,
     zoom_levels,
     image_dump,
+    tile_scheme,
     num_workers,
     src_nodata,
     dst_nodata,
@@ -531,7 +539,7 @@ def mbtiles(
                 )
             conn.commit()
 
-        def insert_results(tile, contents, img_ext=None, image_dump=None):
+        def insert_results(tile, contents, img_ext=None, image_dump=None, tile_scheme="tms"):
             """Also a closure."""
             cursor = conn.cursor()
             if contents is None:
@@ -539,11 +547,18 @@ def mbtiles(
                 return
 
             # MBTiles have a different origin than Mercantile/tilebelt.
+            # See https://gist.github.com/tmcw/4954720
+            # and https://docs.mapbox.com/mapbox-gl-js/style-spec/sources/#raster-scheme.
             tiley = int(math.pow(2, tile.z)) - tile.y - 1
 
             # Optional image dump.
             if image_dump:
-                img_name = "{}-{}-{}.{}".format(tile.x, tiley, tile.z, img_ext)
+                img_name = "{}-{}-{}.{}".format(
+                    tile.x,
+                    tile.y if tile_scheme == "xyz" else tiley,
+                    tile.z,
+                    img_ext
+                )
                 img_path = os.path.join(image_dump, img_name)
                 with open(img_path, "wb") as img:
                     img.write(contents)
@@ -589,6 +604,7 @@ def mbtiles(
                 resampling=resampling,
                 img_ext=img_ext,
                 image_dump=image_dump,
+                tile_scheme=tile_scheme,
                 progress_bar=pbar,
                 open_options=open_options,
                 creation_options=creation_options,

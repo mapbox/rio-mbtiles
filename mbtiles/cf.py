@@ -22,6 +22,7 @@ def process_tiles(
     resampling=None,
     img_ext=None,
     image_dump=None,
+    tile_scheme=None,
     progress_bar=None,
     open_options=None,
     warp_options=None,
@@ -60,7 +61,7 @@ def process_tiles(
 
             for future in done:
                 tile, contents = future.result()
-                insert_results(tile, contents, img_ext=img_ext, image_dump=image_dump)
+                insert_results(tile, contents, img_ext=img_ext, image_dump=image_dump, tile_scheme=tile_scheme)
 
             count += len(done)
             if count > BATCH_SIZE:
