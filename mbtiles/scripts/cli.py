@@ -458,6 +458,7 @@ def mbtiles(
             pbar = None
 
         # Initialize the sqlite db.
+        appending = None
         output_exists = os.path.exists(output)
         if append:
             appending = output_exists
