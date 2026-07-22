@@ -249,7 +249,7 @@ def test_rgba_png(tmpdir, data, filename):
         (4, 10, 70, "RGB.byte.tif"),
         (6, 7, 6, "RGB.byte.tif"),
         (4, 10, 12, "rgb-193f513.vrt"),
-        (4, 10, 69, "rgb-fa48952.vrt"),
+        (4, 10, 70, "rgb-fa48952.vrt"),
     ],
 )
 @pytest.mark.parametrize(
